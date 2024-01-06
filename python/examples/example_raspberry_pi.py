@@ -1,21 +1,20 @@
 #!/usr/bin/python
-# /********************************************************************************
-# * Copyright (c) 2014, 2018 Cirrus Link Solutions and others
-# *
-# * This program and the accompanying materials are made available under the
-# * terms of the Eclipse Public License 2.0 which is available at
-# * http://www.eclipse.org/legal/epl-2.0.
-# *
-# * SPDX-License-Identifier: EPL-2.0
-# *
-# * Contributors:
-# *   Cirrus Link Solutions - initial implementation
-# ********************************************************************************/
+
+# Copyright (c) 2014, 2018 Cirrus Link Solutions and others
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0.
+#
+# SPDX-License-Identifier: EPL-2.0
+#
+# Contributors:
+#   Cirrus Link Solutions - initial implementation
+
 import sys
 
 sys.path.insert(0, "client_lib")
 
-import random
 import subprocess
 import time
 from threading import Lock
@@ -35,9 +34,7 @@ myPassword = "changeme"
 lock = Lock()
 
 
-######################################################################
 # Button press event handler
-######################################################################
 def button_changed(pin):
     outboundPayload = sparkplug.getDdataPayload()
     buttonValue = pin.read()
@@ -55,9 +52,7 @@ def button_changed(pin):
     )
 
 
-######################################################################
 # Input change event handler
-######################################################################
 def input_a_changed(pin):
     input_changed("Inputs/a", pin)
 
@@ -89,13 +84,10 @@ def input_changed(name, pin):
         )
     finally:
         lock.release()
-######################################################################
 
 
-######################################################################
-# The callback for when the client receives a CONNACK response from the server.
-######################################################################
 def on_connect(client, userdata, flags, rc):
+    """Callback for when the client receives a CONNACK response from the server."""
     global myGroupId
     global myNodeName
     print("Connected with result code " + str(rc))
@@ -104,13 +96,10 @@ def on_connect(client, userdata, flags, rc):
     # reconnect then subscriptions will be renewed.
     client.subscribe(f"spBv1.0/{myGroupId}/NCMD/{myNodeName}/#")
     client.subscribe(f"spBv1.0/{myGroupId}/DCMD/{myNodeName}/#")
-######################################################################
 
 
-######################################################################
-# The callback for when a PUBLISH message is received from the server.
-######################################################################
 def on_message(client, userdata, msg):
+    """Callback for when a PUBLISH message is received from the server."""
     print("Message arrived: " + msg.topic)
     tokens = msg.topic.split("/")
 
@@ -229,13 +218,11 @@ def on_message(client, userdata, msg):
         print("Unknown command...")
 
     print("done publishing")
-######################################################################
 
 
-######################################################################
-# Publish the Birth certificate
-######################################################################
+#
 def publishBirths():
+    """Publish the Birth certificate."""
     print("Publishing Birth")
 
     # Create the NBIRTH payload
@@ -375,7 +362,7 @@ def publishBirths():
         0,
         False,
     )
-######################################################################
+
 
 # Create the NDEATH payload
 deathPayload = sparkplug.getNodeDeathPayload()

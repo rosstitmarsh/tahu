@@ -1,15 +1,14 @@
-# /********************************************************************************
-# * Copyright (c) 2014, 2018 Cirrus Link Solutions and others
-# *
-# * This program and the accompanying materials are made available under the
-# * terms of the Eclipse Public License 2.0 which is available at
-# * http://www.eclipse.org/legal/epl-2.0.
-# *
-# * SPDX-License-Identifier: EPL-2.0
-# *
-# * Contributors:
-# *   Cirrus Link Solutions - initial implementation
-# ********************************************************************************/
+# Copyright (c) 2014, 2018 Cirrus Link Solutions and others
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0.
+#
+# SPDX-License-Identifier: EPL-2.0
+#
+# Contributors:
+#   Cirrus Link Solutions - initial implementation
+
 import time
 
 import sparkplug_b_pb2
@@ -96,17 +95,21 @@ class ParameterDataType:
     Text = 14
 
 
-# Always request this before requesting the Node Birth Payload
-######################################################################
 def getNodeDeathPayload():
+    """Get an NDEATH payload.
+
+    Always request this before requesting the Node Birth Payload
+    """
     payload = sparkplug_b_pb2.Payload()
     addMetric(payload, "bdSeq", None, MetricDataType.Int64, getBdSeqNum())
     return payload
 
 
-# Always request this after requesting the Node Death Payload
-######################################################################
 def getNodeBirthPayload():
+    """Get an NBIRTH payload.
+
+    Always request this after requesting the Node Death Payload
+    """
     global seqNum
     seqNum = 0
     payload = sparkplug_b_pb2.Payload()
@@ -116,24 +119,21 @@ def getNodeBirthPayload():
     return payload
 
 
-# Get the DBIRTH payload
-######################################################################
 def getDeviceBirthPayload():
+    """Get a DBIRTH payload."""
     payload = sparkplug_b_pb2.Payload()
     payload.timestamp = int(round(time.time() * 1000))
     payload.seq = getSeqNum()
     return payload
 
 
-# Get a DDATA payload
-######################################################################
 def getDdataPayload():
+    """Get a DDATA payload."""
     return getDeviceBirthPayload()
 
 
-# Helper method for adding dataset metrics to a payload
-######################################################################
 def initDatasetMetric(payload, name, alias, columns, types):
+    """Add dataset metrics to a payload."""
     metric = payload.metrics.add()
     if name is not None:
         metric.name = name
@@ -149,9 +149,8 @@ def initDatasetMetric(payload, name, alias, columns, types):
     return metric.dataset_value
 
 
-# Helper method for adding dataset metrics to a payload
-######################################################################
 def initTemplateMetric(payload, name, alias, templateRef):
+    """Add dataset metrics to a payload."""
     metric = payload.metrics.add()
     if name is not None:
         metric.name = name
@@ -170,18 +169,14 @@ def initTemplateMetric(payload, name, alias, templateRef):
     return metric.template_value
 
 
-# Helper method for adding metrics to a container which can be a
-# payload or a template with a timestamp
-######################################################################
 # def addMetric(container, name, alias, type, value):
+#     """Add metrics to a container which can be a payload or a template"""
 #     metric.timestamp = int(round(time.time() * 1000))
 #     return addMetric(container, name, alias, type, value, timestamp)
 
 
-# Helper method for adding metrics to a container which can be a
-# payload or a template
-######################################################################
 def addMetric(container, name, alias, type_, value, timestamp=None):
+    """Add metrics to a container which can be a payload or a template."""
     if timestamp is None:
         timestamp = int(round(time.time() * 1000))
 
@@ -302,10 +297,8 @@ def addMetric(container, name, alias, type_, value, timestamp=None):
     return metric
 
 
-# Helper method for adding metrics to a container which can be a
-# payload or a template
-######################################################################
 def addHistoricalMetric(container, name, alias, type_, value):
+    """Add metrics to a container which can be a payload or a template."""
     metric = addMetric(container, name, alias, type_, value)
     metric.is_historical = True
 
@@ -313,10 +306,8 @@ def addHistoricalMetric(container, name, alias, type_, value):
     return metric
 
 
-# Helper method for adding metrics to a container which can be a
-# payload or a template
-######################################################################
 def addNullMetric(container, name, alias, type_):
+    """Add metrics to a container which can be a payload or a template."""
     metric = container.metrics.add()
     if name is not None:
         metric.name = name
@@ -396,9 +387,8 @@ def addNullMetric(container, name, alias, type_):
     return metric
 
 
-# Helper method for getting the next sequence number
-######################################################################
 def getSeqNum():
+    """Get the next sequence number."""
     global seqNum
     retVal = seqNum
     # print("seqNum: " + str(retVal))
@@ -408,9 +398,8 @@ def getSeqNum():
     return retVal
 
 
-# Helper method for getting the next birth/death sequence number
-######################################################################
 def getBdSeqNum():
+    """Get the next birth/death sequence number."""
     global bdSeq
     retVal = bdSeq
     # print("bdSeqNum: " + str(retVal))

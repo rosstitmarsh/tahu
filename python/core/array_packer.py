@@ -1,29 +1,23 @@
-"""*******************************************************************************
-* Copyright (c) 2021 Ian Craggs
-*
-* All rights reserved. This program and the accompanying materials
-* are made available under the terms of the Eclipse Public License v2.0
-* and Eclipse Distribution License v1.0 which accompany this distribution.
-*
-* The Eclipse Public License is available at
-*    https://www.eclipse.org/legal/epl-2.0/
-* and the Eclipse Distribution License is available at
-*   http://www.eclipse.org/org/documents/edl-v10.php.
-*
-* Contributors:
-*    @rahulrauki - inital Array packing and unpacking as per SparkPlug B guidelines
-*******************************************************************************
+# Copyright (c) 2021 Ian Craggs
+
+# All rights reserved. This program and the accompanying materials
+# are made available under the terms of the Eclipse Public License v2.0
+# and Eclipse Distribution License v1.0 which accompany this distribution.
+
+# The Eclipse Public License is available at
+#    https://www.eclipse.org/legal/epl-2.0/
+# and the Eclipse Distribution License is available at
+#   http://www.eclipse.org/org/documents/edl-v10.php.
+
+# Contributors:
+#    @rahulrauki - inital Array packing and unpacking as per SparkPlug B guidelines
+
+"""Helper functions for encoding and decoding array types (22-34) according to the SparkPlug B Specification.
+
+The module uses built-in struct module for packing and unpacking of bytes.
 """
 
-
 import struct
-
-# /********************************************************************************
-# * Purpose of the module is to provide helper function for encoding and decoding
-# * of Array Types ( 22 - 34 ) according to SparkPlug B Specification
-# *
-# * The module uses built-in struct module for packing and unpacking of bytes
-# ********************************************************************************/
 
 
 # Packing template function using in-built struct module

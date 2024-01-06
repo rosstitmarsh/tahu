@@ -1,16 +1,16 @@
 #!/usr/bin/python
-# /********************************************************************************
-# * Copyright (c) 2014, 2018 Cirrus Link Solutions and others
-# *
-# * This program and the accompanying materials are made available under the
-# * terms of the Eclipse Public License 2.0 which is available at
-# * http://www.eclipse.org/legal/epl-2.0.
-# *
-# * SPDX-License-Identifier: EPL-2.0
-# *
-# * Contributors:
-# *   Cirrus Link Solutions - initial implementation
-# ********************************************************************************/
+
+# Copyright (c) 2014, 2018 Cirrus Link Solutions and others
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0.
+#
+# SPDX-License-Identifier: EPL-2.0
+#
+# Contributors:
+#   Cirrus Link Solutions - initial implementation
+
 import sys
 
 sys.path.insert(0, "../core/")
@@ -35,10 +35,8 @@ myUsername = "admin"
 myPassword = "changeme"
 
 
-######################################################################
-# The callback for when the client receives a CONNACK response from the server.
-######################################################################
 def on_connect(client, userdata, flags, rc):
+    """Callback for when the client receives a CONNACK response from the server."""
     if rc == 0:
         print("Connected with result code " + str(rc))
     else:
@@ -52,13 +50,10 @@ def on_connect(client, userdata, flags, rc):
     # reconnect then subscriptions will be renewed.
     client.subscribe(f"spBv1.0/{myGroupId}/NCMD/{myNodeName}/#")
     client.subscribe(f"spBv1.0/{myGroupId}/DCMD/{myNodeName}/#")
-######################################################################
 
 
-######################################################################
-# The callback for when a PUBLISH message is received from the server.
-######################################################################
 def on_message(client, userdata, msg):
+    """Callback for when a PUBLISH message is received from the server."""
     print("Message arrived: " + msg.topic)
     tokens = msg.topic.split("/")
 
@@ -140,22 +135,16 @@ def on_message(client, userdata, msg):
         print("Unknown command...")
 
     print("Done publishing")
-######################################################################
 
 
-######################################################################
-# Publish the BIRTH certificates
-######################################################################
 def publishBirth():
+    """Publish the BIRTH certificates."""
     publishNodeBirth()
     publishDeviceBirth()
-######################################################################
 
 
-######################################################################
-# Publish the NBIRTH certificate
-######################################################################
 def publishNodeBirth():
+    """Publish the NBIRTH certificate."""
     print("Publishing Node Birth")
 
     # Create the node birth payload
@@ -209,13 +198,10 @@ def publishNodeBirth():
     # Publish the node birth certificate
     byteArray = bytearray(payload.SerializeToString())
     client.publish(f"spBv1.0/{myGroupId}/NBIRTH/{myNodeName}", byteArray, 0, False)
-######################################################################
 
 
-######################################################################
-# Publish the DBIRTH certificate
-######################################################################
 def publishDeviceBirth():
+    """Publish the DBIRTH certificate."""
     print("Publishing Device Birth")
 
     # Get the payload
@@ -253,11 +239,9 @@ def publishDeviceBirth():
         0,
         False,
     )
-######################################################################
 
-######################################################################
+
 # Main Application
-######################################################################
 print("Starting main application")
 
 # Create the node death payload
@@ -314,4 +298,3 @@ while True:
     for _ in range(5):
         time.sleep(0.1)
         client.loop()
-######################################################################
