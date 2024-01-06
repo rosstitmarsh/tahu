@@ -1,5 +1,5 @@
 #!/usr/bin/python
-#/********************************************************************************
+# /********************************************************************************
 # * Copyright (c) 2014, 2018 Cirrus Link Solutions and others
 # *
 # * This program and the accompanying materials are made available under the
@@ -12,15 +12,17 @@
 # *   Cirrus Link Solutions - initial implementation
 # ********************************************************************************/
 import sys
-sys.path.insert(0, "../core/")
-#print(sys.path)
 
-import paho.mqtt.client as mqtt
-import sparkplug_b as sparkplug
-import time
+sys.path.insert(0, "../core/")
+# print(sys.path)
+
 import random
 import string
+import time
 
+import paho.mqtt.client as mqtt
+
+import sparkplug_b as sparkplug
 from sparkplug_b import *
 
 # Application Variables
@@ -32,14 +34,15 @@ publishPeriod = 5000
 myUsername = "admin"
 myPassword = "changeme"
 
+
 ######################################################################
 # The callback for when the client receives a CONNACK response from the server.
 ######################################################################
 def on_connect(client, userdata, flags, rc):
     if rc == 0:
-        print("Connected with result code "+str(rc))
+        print("Connected with result code " + str(rc))
     else:
-        print("Failed to connect with result code "+str(rc))
+        print("Failed to connect with result code " + str(rc))
         sys.exit()
 
     global myGroupId
@@ -51,6 +54,7 @@ def on_connect(client, userdata, flags, rc):
     client.subscribe("spBv1.0/" + myGroupId + "/DCMD/" + myNodeName + "/#")
 ######################################################################
 
+
 ######################################################################
 # The callback for when a PUBLISH message is received from the server.
 ######################################################################
@@ -58,7 +62,12 @@ def on_message(client, userdata, msg):
     print("Message arrived: " + msg.topic)
     tokens = msg.topic.split("/")
 
-    if tokens[0] == "spBv1.0" and tokens[1] == myGroupId and (tokens[2] == "NCMD" or tokens[2] == "DCMD") and tokens[3] == myNodeName:
+    if (
+        tokens[0] == "spBv1.0"
+        and tokens[1] == myGroupId
+        and (tokens[2] == "NCMD" or tokens[2] == "DCMD")
+        and tokens[3] == myNodeName
+    ):
         inboundPayload = sparkplug_b_pb2.Payload()
         inboundPayload.ParseFromString(msg.payload)
         for metric in inboundPayload.metrics:
@@ -67,7 +76,7 @@ def on_message(client, userdata, msg):
                 # disconnect from the current MQTT server and connect to the next MQTT server in the
                 # list of available servers.  This is used for clients that have a pool of MQTT servers
                 # to connect to.
-                print( "'Node Control/Next Server' is not implemented in this example")
+                print("'Node Control/Next Server' is not implemented in this example")
             elif metric.name == "Node Control/Rebirth":
                 # 'Node Control/Rebirth' is an NCMD used to tell the device/client application to resend
                 # its full NBIRTH and DBIRTH again.  MQTT Engine will send this NCMD to a device/client
@@ -89,7 +98,7 @@ def on_message(client, userdata, msg):
 
                 # We know this is an Int16 because of how we declated it in the DBIRTH
                 newValue = metric.int_value
-                print( "CMD message for output/Device Metric2 - New Value: {}".format(newValue))
+                print(f"CMD message for output/Device Metric2 - New Value: {newValue}")
 
                 # Create the DDATA payload - Use the alias because this isn't the DBIRTH
                 payload = sparkplug.getDdataPayload()
@@ -97,7 +106,12 @@ def on_message(client, userdata, msg):
 
                 # Publish a message data
                 byteArray = bytearray(payload.SerializeToString())
-                client.publish("spBv1.0/" + myGroupId + "/DDATA/" + myNodeName + "/" + myDeviceName, byteArray, 0, False)
+                client.publish(
+                    f"spBv1.0/{myGroupId}/DDATA/{myNodeName}/{myDeviceName}",
+                    byteArray,
+                    0,
+                    False,
+                )
             elif metric.name == "output/Device Metric3":
                 # This is a metric we declared in our DBIRTH message and we're emulating an output.
                 # So, on incoming 'writes' to the output we must publish a DDATA with the new output
@@ -106,7 +120,9 @@ def on_message(client, userdata, msg):
 
                 # We know this is an Boolean because of how we declated it in the DBIRTH
                 newValue = metric.boolean_value
-                print( "CMD message for output/Device Metric3 - New Value: %r" % newValue)
+                print(
+                    "CMD message for output/Device Metric3 - New Value: %r" % newValue
+                )
 
                 # Create the DDATA payload - use the alias because this isn't the DBIRTH
                 payload = sparkplug.getDdataPayload()
@@ -114,14 +130,20 @@ def on_message(client, userdata, msg):
 
                 # Publish a message data
                 byteArray = bytearray(payload.SerializeToString())
-                client.publish("spBv1.0/" + myGroupId + "/DDATA/" + myNodeName + "/" + myDeviceName, byteArray, 0, False)
+                client.publish(
+                    f"spBv1.0/{myGroupId}/DDATA/{myNodeName}/{myDeviceName}",
+                    byteArray,
+                    0,
+                    False,
+                )
             else:
-                print( "Unknown command: " + metric.name)
+                print("Unknown command: " + metric.name)
     else:
-        print( "Unknown command...")
+        print("Unknown command...")
 
-    print( "Done publishing")
+    print("Done publishing")
 ######################################################################
+
 
 ######################################################################
 # Publish the BIRTH certificates
@@ -131,11 +153,12 @@ def publishBirth():
     publishDeviceBirth()
 ######################################################################
 
+
 ######################################################################
 # Publish the NBIRTH certificate
 ######################################################################
 def publishNodeBirth():
-    print( "Publishing Node Birth")
+    print("Publishing Node Birth")
 
     # Create the node birth payload
     payload = sparkplug.getNodeBirthPayload()
@@ -147,14 +170,17 @@ def publishNodeBirth():
 
     # Publish the node birth certificate
     byteArray = bytearray(payload.SerializeToString())
-    client.publish("spBv1.0/" + myGroupId + "/NBIRTH/" + myNodeName, byteArray, 0, False)
+    client.publish(
+        "spBv1.0/" + myGroupId + "/NBIRTH/" + myNodeName, byteArray, 0, False
+    )
 ######################################################################
+
 
 ######################################################################
 # Publish the DBIRTH certificate
 ######################################################################
 def publishDeviceBirth():
-    print( "Publishing Device Birth")
+    print("Publishing Device Birth")
 
     # Get the payload
     payload = sparkplug.getDeviceBirthPayload()
@@ -180,7 +206,12 @@ def publishDeviceBirth():
 
     # Publish the initial data with the Device BIRTH certificate
     totalByteArray = bytearray(payload.SerializeToString())
-    client.publish("spBv1.0/" + myGroupId + "/DBIRTH/" + myNodeName + "/" + myDeviceName, totalByteArray, 0, False)
+    client.publish(
+        f"spBv1.0/{myGroupId}/DBIRTH/{myNodeName}/{myDeviceName}",
+        totalByteArray,
+        0,
+        False,
+    )
 ######################################################################
 
 ######################################################################
@@ -197,11 +228,11 @@ client.on_connect = on_connect
 client.on_message = on_message
 client.username_pw_set(myUsername, myPassword)
 deathByteArray = bytearray(deathPayload.SerializeToString())
-client.will_set("spBv1.0/" + myGroupId + "/NDEATH/" + myNodeName, deathByteArray, 0, False)
+client.will_set(f"spBv1.0/{myGroupId}/NDEATH/{myNodeName}", deathByteArray, 0, False)
 client.connect(serverUrl, 1883, 60)
 
 # Short delay to allow connect callback to occur
-time.sleep(.1)
+time.sleep(0.1)
 client.loop()
 
 # Publish the birth certificates
@@ -212,10 +243,18 @@ while True:
     payload = sparkplug.getDdataPayload()
 
     # Add some random data to the inputs
-    addMetric(payload, None, None, MetricDataType.String, ''.join(random.choice(string.ascii_lowercase) for i in range(12)))
+    addMetric(
+        payload,
+        None,
+        None,
+        MetricDataType.String,
+        "".join(random.choice(string.ascii_lowercase) for i in range(12)),
+    )
 
     # Note this data we're setting to STALE via the propertyset as an example
-    metric = addMetric(payload, None, 102, MetricDataType.Boolean, random.choice([True, False]))
+    metric = addMetric(
+        payload, None, 102, MetricDataType.Boolean, random.choice([True, False])
+    )
     metric.properties.keys.extend(["Quality"])
     propertyValue = metric.properties.values.add()
     propertyValue.type = ParameterDataType.Int32
@@ -227,6 +266,6 @@ while True:
 
     # Sit and wait for inbound or outbound events
     for _ in range(5):
-        time.sleep(.1)
+        time.sleep(0.1)
         client.loop()
 ######################################################################
