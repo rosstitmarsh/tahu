@@ -47,9 +47,6 @@ def on_connect(client, userdata, flags, rc):
         print("Failed to connect with result code " + str(rc))
         sys.exit()
 
-    global my_group_id
-    global my_node_name
-
     # Subscribing in on_connect() means that if we lose the connection and
     # reconnect then subscriptions will be renewed.
     client.subscribe("spBv1.0/" + my_group_id + "/NCMD/" + my_node_name + "/#")

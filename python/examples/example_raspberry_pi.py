@@ -91,8 +91,6 @@ def input_changed(name, pin):
 
 def on_connect(client, userdata, flags, rc):
     """Callback for when the client receives a CONNACK response from the server."""
-    global my_group_id
-    global my_node_name
     print("Connected with result code " + str(rc))
 
     # Subscribing in on_connect() means that if we lose the connection and
