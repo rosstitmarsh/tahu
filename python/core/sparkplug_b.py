@@ -165,12 +165,6 @@ def init_template_metric(payload, name, alias, template_ref):
     return metric.template_value
 
 
-# def addMetric(container, name, alias, type, value):
-#     """Add metrics to a container which can be a payload or a template"""
-#     metric.timestamp = int(round(time.time() * 1000))
-#     return addMetric(container, name, alias, type, value, timestamp)
-
-
 def add_metric(container, name, alias, type_, value, timestamp=None):
     """Add metrics to a container which can be a payload or a template."""
     if timestamp is None:
@@ -182,8 +176,6 @@ def add_metric(container, name, alias, type_, value, timestamp=None):
     if alias is not None:
         metric.alias = alias
     metric.timestamp = timestamp
-
-    # print( "Type: " + str(type))
 
     if type_ == MetricDataType.Int8:
         metric.datatype = MetricDataType.Int8
@@ -312,8 +304,6 @@ def add_null_metric(container, name, alias, type_):
     metric.timestamp = int(round(time.time() * 1000))
     metric.is_null = True
 
-    # print( "Type: " + str(type))
-
     if type_ == MetricDataType.Int8:
         metric.datatype = MetricDataType.Int8
     elif type_ == MetricDataType.Int16:
@@ -387,7 +377,6 @@ def get_seq_num():
     """Get the next sequence number."""
     global seq_num
     ret_val = seq_num
-    # print("seqNum: " + str(ret_val))
     seq_num += 1
     if seq_num == 256:
         seq_num = 0
@@ -398,7 +387,6 @@ def get_bd_seq_num():
     """Get the next birth/death sequence number."""
     global bd_seq
     ret_val = bd_seq
-    # print("bdSeqNum: " + str(ret_val))
     bd_seq += 1
     if bd_seq == 256:
         bd_seq = 0

@@ -250,7 +250,6 @@ while True:
 
     # Publish a message data
     byte_array = bytearray(payload.SerializeToString())
-    # client.publish("spBv1.0/" + my_group_id + "/DDATA/" + my_node_name + "/" + my_device_name, byte_array, 0, False)
 
     # Sit and wait for inbound or outbound events
     for _ in range(5):
