@@ -11,19 +11,27 @@
 # Contributors:
 #   Cirrus Link Solutions - initial implementation
 
-import sys
-
-sys.path.insert(0, "../core/")
-# print(sys.path)
-
 import random
 import string
+import sys
 import time
 
 import paho.mqtt.client as mqtt
 
-import sparkplug_b as sparkplug
-from sparkplug_b import *
+from core.sparkplug_b import (
+    DataSetDataType,
+    MetricDataType,
+    ParameterDataType,
+    addMetric,
+    addNullMetric,
+    getDdataPayload,
+    getDeviceBirthPayload,
+    getNodeBirthPayload,
+    getNodeDeathPayload,
+    initDatasetMetric,
+    initTemplateMetric,
+)
+from core.sparkplug_b_pb2 import Payload
 
 # Application Variables
 serverUrl = "localhost"
@@ -63,7 +71,7 @@ def on_message(client, userdata, msg):
         and (tokens[2] == "NCMD" or tokens[2] == "DCMD")
         and tokens[3] == myNodeName
     ):
-        inboundPayload = sparkplug_b_pb2.Payload()
+        inboundPayload = Payload()
         inboundPayload.ParseFromString(msg.payload)
         for metric in inboundPayload.metrics:
             if metric.name == "Node Control/Next Server":
@@ -96,7 +104,7 @@ def on_message(client, userdata, msg):
                 print(f"CMD message for output/Device Metric2 - New Value: {newValue}")
 
                 # Create the DDATA payload
-                payload = sparkplug.getDdataPayload()
+                payload = getDdataPayload()
                 addMetric(payload, None, None, MetricDataType.Int16, newValue)
 
                 # Publish a message data
@@ -118,7 +126,7 @@ def on_message(client, userdata, msg):
                 print(f"CMD message for output/Device Metric3 - New Value: {newValue}")
 
                 # Create the DDATA payload
-                payload = sparkplug.getDdataPayload()
+                payload = getDdataPayload()
                 addMetric(payload, None, None, MetricDataType.Boolean, newValue)
 
                 # Publish a message data
@@ -148,7 +156,7 @@ def publishNodeBirth():
     print("Publishing Node Birth")
 
     # Create the node birth payload
-    payload = sparkplug.getNodeBirthPayload()
+    payload = getNodeBirthPayload()
 
     # Set up the Node Controls
     addMetric(payload, "Node Control/Next Server", None, MetricDataType.Boolean, False)
@@ -205,7 +213,7 @@ def publishDeviceBirth():
     print("Publishing Device Birth")
 
     # Get the payload
-    payload = sparkplug.getDeviceBirthPayload()
+    payload = getDeviceBirthPayload()
 
     # Add some device metrics
     addMetric(
@@ -245,7 +253,7 @@ def publishDeviceBirth():
 print("Starting main application")
 
 # Create the node death payload
-deathPayload = sparkplug.getNodeDeathPayload()
+deathPayload = getNodeDeathPayload()
 
 # Start of main program - Set up the MQTT client connection
 client = mqtt.Client(serverUrl, 1883, 60)
@@ -265,7 +273,7 @@ publishBirth()
 
 while True:
     # Periodically publish some new data
-    payload = sparkplug.getDdataPayload()
+    payload = getDdataPayload()
 
     # Add some random data to the inputs
     addMetric(

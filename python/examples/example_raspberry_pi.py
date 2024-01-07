@@ -11,10 +11,6 @@
 # Contributors:
 #   Cirrus Link Solutions - initial implementation
 
-import sys
-
-sys.path.insert(0, "client_lib")
-
 import subprocess
 import time
 from threading import Lock
@@ -22,8 +18,16 @@ from threading import Lock
 import paho.mqtt.client as mqtt
 import pibrella
 
-import sparkplug_b as sparkplug
-from sparkplug_b import *
+from core.sparkplug_b import (
+    MetricDataType,
+    ParameterDataType,
+    addMetric,
+    getDdataPayload,
+    getDeviceBirthPayload,
+    getNodeBirthPayload,
+    getNodeDeathPayload,
+)
+from core.sparkplug_b_pb2 import Payload
 
 serverUrl = "192.168.1.53"
 myGroupId = "Sparkplug B Devices"
@@ -36,7 +40,7 @@ lock = Lock()
 
 # Button press event handler
 def button_changed(pin):
-    outboundPayload = sparkplug.getDdataPayload()
+    outboundPayload = getDdataPayload()
     buttonValue = pin.read()
     if buttonValue == 1:
         print("You pressed the button!")
@@ -73,7 +77,7 @@ def input_changed(name, pin):
     lock.acquire()
     try:
         # Lock the block around the callback handler to prevent inproper access based on debounce
-        outboundPayload = sparkplug.getDdataPayload()
+        outboundPayload = getDdataPayload()
         addMetric(outboundPayload, name, None, MetricDataType.Boolean, pin.read())
         byteArray = bytearray(outboundPayload.SerializeToString())
         client.publish(
@@ -109,9 +113,9 @@ def on_message(client, userdata, msg):
         and tokens[2] == "DCMD"
         and tokens[3] == myNodeName
     ):
-        inboundPayload = sparkplug_b_pb2.Payload()
+        inboundPayload = Payload()
         inboundPayload.ParseFromString(msg.payload)
-        outboundPayload = sparkplug.getDdataPayload()
+        outboundPayload = getDdataPayload()
 
         for metric in inboundPayload.metrics:
             print("Tag Name: " + metric.name)
@@ -205,7 +209,7 @@ def on_message(client, userdata, msg):
         and tokens[2] == "NCMD"
         and tokens[3] == myNodeName
     ):
-        inboundPayload = sparkplug_b_pb2.Payload()
+        inboundPayload = Payload()
         inboundPayload.ParseFromString(msg.payload)
         for metric in inboundPayload.metrics:
             if metric.name == "Node Control/Next Server":
@@ -226,7 +230,7 @@ def publishBirths():
     print("Publishing Birth")
 
     # Create the NBIRTH payload
-    payload = sparkplug.getNodeBirthPayload()
+    payload = getNodeBirthPayload()
 
     # Add the Node Controls
     addMetric(payload, "Node Control/Next Server", None, MetricDataType.Boolean, False)
@@ -301,7 +305,7 @@ def publishBirths():
     client.publish(f"spBv1.0/{myGroupId}/NBIRTH/{myNodeName}", byteArray, 0, False)
 
     # Set up the DBIRTH with the input metrics
-    payload = sparkplug.getDeviceBirthPayload()
+    payload = getDeviceBirthPayload()
 
     addMetric(
         payload, "Inputs/a", None, MetricDataType.Boolean, pibrella.input.a.read()
@@ -365,7 +369,7 @@ def publishBirths():
 
 
 # Create the NDEATH payload
-deathPayload = sparkplug.getNodeDeathPayload()
+deathPayload = getNodeDeathPayload()
 
 # Start of main program - Set up the MQTT client connection
 client = mqtt.Client(serverUrl, 1883, 60)
