@@ -16,91 +16,81 @@ import time
 
 import paho.mqtt.client as mqtt
 
-broker = "localhost"
-port = 1883
-host_application_id = "HOSTAPPID"
+
+class ControlClient(mqtt.Client):
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+
+        self.published = False
+
+    def on_message(self, client, userdata, msg):
+        if msg.topic == "SPARKPLUG_TCK/RESULT":
+            print("*** Result ***", msg.payload)
+
+    def on_connect(self, client, userdata, flags, rc):
+        print(f"Control client connected with result code {rc}")
+        # Subscribing in on_connect() means that if we lose the connection and
+        # reconnect then subscriptions will be renewed.
+        client.subscribe("SPARKPLUG_TCK/#")
+
+    def on_subscribe(self, client, userdata, mid, granted_qos):
+        print("Control client subscribed")
+        client.publish(
+            "SPARKPLUG_TCK/TEST_CONTROL",
+            f"NEW host SessionEstablishment {host_application_id}",
+            qos=1,
+        )
+
+    def control_on_publish(self, client, userdata, mid):
+        print("Control client published")
+        self.published = True
 
 
-def control_on_message(client, userdata, msg):
-    if msg.topic == "SPARKPLUG_TCK/RESULT":
-        print("*** Result ***", msg.payload)
+class TestClient(mqtt.Client):
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+
+        self.published = False
+
+    def on_connect(self, client, userdata, flags, rc):
+        print(f"Test client connected with result code {rc}")
+        client.subscribe("spAv1.0/#")
+
+    def on_subscribe(self, client, userdata, mid, granted_qos):
+        print("Test client subscribed")
+        client.publish(f"STATE/{host_application_id}", "ONLINE", qos=1)
+
+    def on_publish(self, client, userdata, mid):
+        print("Test client published")
+        self.published = True
 
 
-def control_on_connect(client, userdata, flags, rc):
-    print("Control client connected with result code " + str(rc))
-    # Subscribing in on_connect() means that if we lose the connection and
-    # reconnect then subscriptions will be renewed.
-    client.subscribe("SPARKPLUG_TCK/#")
+if __name__ == "__main__":
+    broker = "localhost"
+    port = 1883
+    host_application_id = "HOSTAPPID"
 
+    control_client = ControlClient("sparkplug_control")
+    control_client.connect(broker, port)
+    control_client.loop_start()
 
-def control_on_subscribe(client, userdata, mid, granted_qos):
-    print("Control client subscribed")
-    client.publish(
-        "SPARKPLUG_TCK/TEST_CONTROL",
-        "NEW host SessionEstablishment " + host_application_id,
-        qos=1,
-    )
+    # wait for publish to complete
+    while not control_client.published:
+        time.sleep(0.1)
 
+    test_client = TestClient("clientid", clean_session=True)
+    test_client.will_set(f"STATE/{host_application_id}", "OFFLINE", qos=1, retain=True)
+    test_client.connect(broker, port)
+    test_client.loop_start()
 
-published = False
+    while not test_client.published:
+        time.sleep(0.1)
 
+    test_client.loop_stop()
 
-def control_on_publish(client, userdata, mid):
-    print("Control client published")
-    global published
-    published = True
+    control_client.published = False
+    control_client.publish("SPARKPLUG_TCK/TEST_CONTROL", "END TEST")
+    while not control_client.published:
+        time.sleep(0.1)
 
-
-control_client = mqtt.Client("sparkplug_control")
-control_client.on_connect = control_on_connect
-control_client.on_subscribe = control_on_subscribe
-control_client.on_publish = control_on_publish
-control_client.on_message = control_on_message
-control_client.connect(broker, port)
-control_client.loop_start()
-
-# wait for publish to complete
-while not published:
-    time.sleep(0.1)
-
-
-def test_on_connect(client, userdata, flags, rc):
-    print("Test client connected with result code " + str(rc))
-    client.subscribe("spAv1.0/#")
-
-
-def test_on_subscribe(client, userdata, mid, granted_qos):
-    print("Test client subscribed")
-    client.publish("STATE/" + host_application_id, "ONLINE", qos=1)
-
-
-published = False
-
-
-def test_on_publish(client, userdata, mid):
-    print("Test client published")
-    global published
-    published = True
-
-
-client = mqtt.Client("clientid", clean_session=True)
-client.on_connect = test_on_connect
-client.on_subscribe = test_on_subscribe
-client.on_publish = test_on_publish
-client.will_set(
-    topic="STATE/" + host_application_id, payload="OFFLINE", qos=1, retain=True
-)
-client.connect(broker, port)
-client.loop_start()
-
-while not published:
-    time.sleep(0.1)
-
-client.loop_stop()
-
-published = False
-control_client.publish("SPARKPLUG_TCK/TEST_CONTROL", "END TEST")
-while not published:
-    time.sleep(0.1)
-
-control_client.loop_stop()
+    control_client.loop_stop()
