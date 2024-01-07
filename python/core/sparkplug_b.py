@@ -91,24 +91,6 @@ class ParameterDataType:
     Text = 14
 
 
-class ParameterDataType:
-    Unknown = 0
-    Int8 = 1
-    Int16 = 2
-    Int32 = 3
-    Int64 = 4
-    UInt8 = 5
-    UInt16 = 6
-    UInt32 = 7
-    UInt64 = 8
-    Float = 9
-    Double = 10
-    Boolean = 11
-    String = 12
-    DateTime = 13
-    Text = 14
-
-
 def get_node_death_payload():
     """Get an NDEATH payload.
 

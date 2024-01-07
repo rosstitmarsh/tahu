@@ -22,8 +22,7 @@ import struct
 
 # Packing template function using in-built struct module
 def convert_to_packed_bytes(array, format_specifier):
-    packed_bytes = struct.pack(f"<{len(array)}{format_specifier}", *array)
-    return packed_bytes
+    return struct.pack(f"<{len(array)}{format_specifier}", *array)
 
 
 # Functions for packing each type of array as mentioned in the SparkPlug B Specification
@@ -91,8 +90,7 @@ def convert_to_packed_string_array(array):
 
 def convert_to_packed_datetime_array(array):
     # convert receievd epoch time to 8-byte (int64) array
-    packed_bytes = convert_to_packed_int64_array(array)
-    return packed_bytes
+    return convert_to_packed_int64_array(array)
 
 
 # Un-packing template function
@@ -164,6 +162,5 @@ def convert_from_packed_string_array(packed_bytes):
 
 def convert_from_packed_datetime_array(packed_bytes):
     # unpack the packed bytes the result will be epoch values
-    epoch_array = convert_from_packed_int64_array(packed_bytes)
     # epoch milliseconds are returned as is
-    return epoch_array
+    return convert_from_packed_int64_array(packed_bytes)

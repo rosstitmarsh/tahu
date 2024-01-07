@@ -240,7 +240,7 @@ def publish_births():
     )
     for line in p.stdout.readlines():
         uname_output = (line,)
-    ret_val = p.wait()
+    p.wait()
     p = subprocess.Popen(
         "cat /proc/cpuinfo | grep Hardware",
         shell=True,
@@ -249,7 +249,7 @@ def publish_births():
     )
     for line in p.stdout.readlines():
         hardware_output = (line,)
-    ret_val = p.wait()
+    p.wait()
     p = subprocess.Popen(
         "cat /proc/cpuinfo | grep Revision",
         shell=True,
@@ -258,7 +258,7 @@ def publish_births():
     )
     for line in p.stdout.readlines():
         revision_output = (line,)
-    ret_val = p.wait()
+    p.wait()
     p = subprocess.Popen(
         "cat /proc/cpuinfo | grep Serial",
         shell=True,
@@ -267,7 +267,7 @@ def publish_births():
     )
     for line in p.stdout.readlines():
         serial_output = (line,)
-    ret_val = p.wait()
+    p.wait()
     add_metric(
         payload,
         "Parameters/sw_version",

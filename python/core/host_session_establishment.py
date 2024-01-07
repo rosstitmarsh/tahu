@@ -35,7 +35,7 @@ def control_on_connect(client, userdata, flags, rc):
 
 def control_on_subscribe(client, userdata, mid, granted_qos):
     print("Control client subscribed")
-    rc = client.publish(
+    client.publish(
         "SPARKPLUG_TCK/TEST_CONTROL",
         "NEW host SessionEstablishment " + host_application_id,
         qos=1,
