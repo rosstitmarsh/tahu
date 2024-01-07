@@ -228,7 +228,7 @@ publish_birth()
 
 while True:
     # Periodically publish some new data
-    payload = sparkplug.getDdataPayload()
+    payload = get_ddata_payload()
 
     # Add some random data to the inputs
     add_metric(
