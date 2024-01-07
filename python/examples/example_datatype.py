@@ -21,22 +21,22 @@ import paho.mqtt.client as mqtt
 from core.sparkplug_b import (
     MetricDataType,
     ParameterDataType,
-    addMetric,
-    getDdataPayload,
-    getDeviceBirthPayload,
-    getNodeBirthPayload,
-    getNodeDeathPayload,
+    add_metric,
+    get_ddata_payload,
+    get_device_birth_payload,
+    get_node_birth_payload,
+    get_node_death_payload,
 )
 from core.sparkplug_b_pb2 import Payload
 
 # Application Variables
-serverUrl = "localhost"
-myGroupId = "Sparkplug B Devices"
-myNodeName = "Python Edge Node 1"
-myDeviceName = "Emulated Device"
-publishPeriod = 5000
-myUsername = "admin"
-myPassword = "changeme"
+server_url = "localhost"
+my_group_id = "Sparkplug B Devices"
+my_node_name = "Python Edge Node 1"
+my_device_name = "Emulated Device"
+publish_period = 5000
+my_username = "admin"
+my_passowrd = "changeme"
 
 
 def on_connect(client, userdata, flags, rc):
@@ -47,13 +47,13 @@ def on_connect(client, userdata, flags, rc):
         print("Failed to connect with result code " + str(rc))
         sys.exit()
 
-    global myGroupId
-    global myNodeName
+    global my_group_id
+    global my_node_name
 
     # Subscribing in on_connect() means that if we lose the connection and
     # reconnect then subscriptions will be renewed.
-    client.subscribe("spBv1.0/" + myGroupId + "/NCMD/" + myNodeName + "/#")
-    client.subscribe("spBv1.0/" + myGroupId + "/DCMD/" + myNodeName + "/#")
+    client.subscribe("spBv1.0/" + my_group_id + "/NCMD/" + my_node_name + "/#")
+    client.subscribe("spBv1.0/" + my_group_id + "/DCMD/" + my_node_name + "/#")
 
 
 def on_message(client, userdata, msg):
@@ -63,13 +63,13 @@ def on_message(client, userdata, msg):
 
     if (
         tokens[0] == "spBv1.0"
-        and tokens[1] == myGroupId
+        and tokens[1] == my_group_id
         and (tokens[2] == "NCMD" or tokens[2] == "DCMD")
-        and tokens[3] == myNodeName
+        and tokens[3] == my_node_name
     ):
-        inboundPayload = Payload()
-        inboundPayload.ParseFromString(msg.payload)
-        for metric in inboundPayload.metrics:
+        inbound_payload = Payload()
+        inbound_payload.ParseFromString(msg.payload)
+        for metric in inbound_payload.metrics:
             if metric.name == "Node Control/Next Server":
                 # 'Node Control/Next Server' is an NCMD used to tell the device/client application to
                 # disconnect from the current MQTT server and connect to the next MQTT server in the
@@ -82,13 +82,13 @@ def on_message(client, userdata, msg):
                 # application if it receives an NDATA or DDATA with a metric that was not published in the
                 # original NBIRTH or DBIRTH.  This is why the application must send all known metrics in
                 # its original NBIRTH and DBIRTH messages.
-                publishBirth()
+                publish_birth()
             elif metric.name == "Node Control/Reboot":
                 # 'Node Control/Reboot' is an NCMD used to tell a device/client application to reboot
                 # This can be used for devices that need a full application reset via a soft reboot.
                 # In this case, we fake a full reboot with a republishing of the NBIRTH and DBIRTH
                 # messages.
-                publishBirth()
+                publish_birth()
             elif metric.name == "output/Device Metric2":
                 # This is a metric we declared in our DBIRTH message and we're emulating an output.
                 # So, on incoming 'writes' to the output we must publish a DDATA with the new output
@@ -96,18 +96,18 @@ def on_message(client, userdata, msg):
                 # before publishing a DDATA message.
 
                 # We know this is an Int16 because of how we declated it in the DBIRTH
-                newValue = metric.int_value
-                print(f"CMD message for output/Device Metric2 - New Value: {newValue}")
+                new_value = metric.int_value
+                print(f"CMD message for output/Device Metric2 - New Value: {new_value}")
 
                 # Create the DDATA payload - Use the alias because this isn't the DBIRTH
-                payload = getDdataPayload()
-                addMetric(payload, None, None, MetricDataType.Int16, newValue)
+                payload = get_ddata_payload()
+                add_metric(payload, None, None, MetricDataType.Int16, new_value)
 
                 # Publish a message data
-                byteArray = bytearray(payload.SerializeToString())
+                byte_array = bytearray(payload.SerializeToString())
                 client.publish(
-                    f"spBv1.0/{myGroupId}/DDATA/{myNodeName}/{myDeviceName}",
-                    byteArray,
+                    f"spBv1.0/{my_group_id}/DDATA/{my_node_name}/{my_device_name}",
+                    byte_array,
                     0,
                     False,
                 )
@@ -118,19 +118,20 @@ def on_message(client, userdata, msg):
                 # before publishing a DDATA message.
 
                 # We know this is an Boolean because of how we declated it in the DBIRTH
-                newValue = metric.boolean_value
+                new_value = metric.boolean_value
                 print(
-                    "CMD message for output/Device Metric3 - New Value: %r" % newValue
+                    "CMD message for output/Device Metric3 - New Value: %r" % new_value
                 )
+
                 # Create the DDATA payload - use the alias because this isn't the DBIRTH
-                payload = getDdataPayload()
-                addMetric(payload, None, None, MetricDataType.Boolean, newValue)
+                payload = get_ddata_payload()
+                add_metric(payload, None, None, MetricDataType.Boolean, new_value)
 
                 # Publish a message data
-                byteArray = bytearray(payload.SerializeToString())
+                byte_array = bytearray(payload.SerializeToString())
                 client.publish(
-                    f"spBv1.0/{myGroupId}/DDATA/{myNodeName}/{myDeviceName}",
-                    byteArray,
+                    f"spBv1.0/{my_group_id}/DDATA/{my_node_name}/{my_device_name}",
+                    byte_array,
                     0,
                     False,
                 )
@@ -142,63 +143,63 @@ def on_message(client, userdata, msg):
     print("Done publishing")
 
 
-def publishBirth():
+def publish_birth():
     """Publish the BIRTH certificates."""
-    publishNodeBirth()
-    publishDeviceBirth()
+    publish_node_birth()
+    publish_device_birth()
 
 
-def publishNodeBirth():
+def publish_node_birth():
     """Publish the NBIRTH certificate."""
     print("Publishing Node Birth")
 
     # Create the node birth payload
-    payload = getNodeBirthPayload()
+    payload = get_node_birth_payload()
 
     # Set up the Node Controls
-    addMetric(payload, "Node Control/Next Server", None, MetricDataType.Boolean, False)
-    addMetric(payload, "Node Control/Rebirth", None, MetricDataType.Boolean, False)
-    addMetric(payload, "Node Control/Reboot", None, MetricDataType.Boolean, False)
+    add_metric(payload, "Node Control/Next Server", None, MetricDataType.Boolean, False)
+    add_metric(payload, "Node Control/Rebirth", None, MetricDataType.Boolean, False)
+    add_metric(payload, "Node Control/Reboot", None, MetricDataType.Boolean, False)
 
     # Publish the node birth certificate
-    byteArray = bytearray(payload.SerializeToString())
+    byte_array = bytearray(payload.SerializeToString())
     client.publish(
-        "spBv1.0/" + myGroupId + "/NBIRTH/" + myNodeName, byteArray, 0, False
+        "spBv1.0/" + my_group_id + "/NBIRTH/" + my_node_name, byte_array, 0, False
     )
 
 
 #
-def publishDeviceBirth():
+def publish_device_birth():
     """Publish the DBIRTH certificate."""
     print("Publishing Device Birth")
 
     # Get the payload
-    payload = getDeviceBirthPayload()
+    payload = get_device_birth_payload()
 
     # Add some device metrics
-    addMetric(payload, "Int8_Min", None, MetricDataType.Int8, -128)
-    addMetric(payload, "Int8_Max", None, MetricDataType.Int8, 127)
-    addMetric(payload, "Int16_Min", None, MetricDataType.Int16, -32768)
-    addMetric(payload, "Int16_Max", None, MetricDataType.Int16, 32767)
-    addMetric(payload, "Int32_Min", None, MetricDataType.Int32, -2147483648)
-    addMetric(payload, "Int32_Max", None, MetricDataType.Int32, 2147483647)
-    addMetric(payload, "Int64_Min", None, MetricDataType.Int64, -9223372036854775808)
-    addMetric(payload, "Int64_Max", None, MetricDataType.Int64, 9223372036854775807)
+    add_metric(payload, "Int8_Min", None, MetricDataType.Int8, -128)
+    add_metric(payload, "Int8_Max", None, MetricDataType.Int8, 127)
+    add_metric(payload, "Int16_Min", None, MetricDataType.Int16, -32768)
+    add_metric(payload, "Int16_Max", None, MetricDataType.Int16, 32767)
+    add_metric(payload, "Int32_Min", None, MetricDataType.Int32, -2147483648)
+    add_metric(payload, "Int32_Max", None, MetricDataType.Int32, 2147483647)
+    add_metric(payload, "Int64_Min", None, MetricDataType.Int64, -9223372036854775808)
+    add_metric(payload, "Int64_Max", None, MetricDataType.Int64, 9223372036854775807)
 
-    addMetric(payload, "UInt8_Min", None, MetricDataType.UInt8, 0)
-    addMetric(payload, "UInt8_Max", None, MetricDataType.UInt8, 255)
-    addMetric(payload, "UInt16_Min", None, MetricDataType.UInt16, 0)
-    addMetric(payload, "UInt16_Max", None, MetricDataType.UInt16, 64535)
-    addMetric(payload, "UInt32_Min", None, MetricDataType.UInt32, 0)
-    addMetric(payload, "UInt32_Max", None, MetricDataType.UInt32, 4294967295)
-    addMetric(payload, "UInt64_Min", None, MetricDataType.UInt64, 0)
-    addMetric(payload, "UInt64_Max", None, MetricDataType.UInt64, 18446744073709551615)
+    add_metric(payload, "UInt8_Min", None, MetricDataType.UInt8, 0)
+    add_metric(payload, "UInt8_Max", None, MetricDataType.UInt8, 255)
+    add_metric(payload, "UInt16_Min", None, MetricDataType.UInt16, 0)
+    add_metric(payload, "UInt16_Max", None, MetricDataType.UInt16, 64535)
+    add_metric(payload, "UInt32_Min", None, MetricDataType.UInt32, 0)
+    add_metric(payload, "UInt32_Max", None, MetricDataType.UInt32, 4294967295)
+    add_metric(payload, "UInt64_Min", None, MetricDataType.UInt64, 0)
+    add_metric(payload, "UInt64_Max", None, MetricDataType.UInt64, 18446744073709551615)
 
     # Publish the initial data with the Device BIRTH certificate
-    totalByteArray = bytearray(payload.SerializeToString())
+    total_byte_array = bytearray(payload.SerializeToString())
     client.publish(
-        f"spBv1.0/{myGroupId}/DBIRTH/{myNodeName}/{myDeviceName}",
-        totalByteArray,
+        f"spBv1.0/{my_group_id}/DBIRTH/{my_node_name}/{my_device_name}",
+        total_byte_array,
         0,
         False,
     )
@@ -208,30 +209,32 @@ def publishDeviceBirth():
 print("Starting main application")
 
 # Create the node death payload
-deathPayload = getNodeDeathPayload()
+death_payload = get_node_death_payload()
 
 # Start of main program - Set up the MQTT client connection
-client = mqtt.Client(serverUrl, 1883, 60)
+client = mqtt.Client(server_url, 1883, 60)
 client.on_connect = on_connect
 client.on_message = on_message
-client.username_pw_set(myUsername, myPassword)
-deathByteArray = bytearray(deathPayload.SerializeToString())
-client.will_set(f"spBv1.0/{myGroupId}/NDEATH/{myNodeName}", deathByteArray, 0, False)
-client.connect(serverUrl, 1883, 60)
+client.username_pw_set(my_username, my_passowrd)
+death_byte_array = bytearray(death_payload.SerializeToString())
+client.will_set(
+    f"spBv1.0/{my_group_id}/NDEATH/{my_node_name}", death_byte_array, 0, False
+)
+client.connect(server_url, 1883, 60)
 
 # Short delay to allow connect callback to occur
 time.sleep(0.1)
 client.loop()
 
 # Publish the birth certificates
-publishBirth()
+publish_birth()
 
 while True:
     # Periodically publish some new data
-    payload = getDdataPayload()
+    payload = sparkplug.getDdataPayload()
 
     # Add some random data to the inputs
-    addMetric(
+    add_metric(
         payload,
         None,
         None,
@@ -240,17 +243,17 @@ while True:
     )
 
     # Note this data we're setting to STALE via the propertyset as an example
-    metric = addMetric(
+    metric = add_metric(
         payload, None, 102, MetricDataType.Boolean, random.choice([True, False])
     )
     metric.properties.keys.extend(["Quality"])
-    propertyValue = metric.properties.values.add()
-    propertyValue.type = ParameterDataType.Int32
-    propertyValue.int_value = 500
+    property_value = metric.properties.values.add()
+    property_value.type = ParameterDataType.Int32
+    property_value.int_value = 500
 
     # Publish a message data
-    byteArray = bytearray(payload.SerializeToString())
-    # client.publish("spBv1.0/" + myGroupId + "/DDATA/" + myNodeName + "/" + myDeviceName, byteArray, 0, False)
+    byte_array = bytearray(payload.SerializeToString())
+    # client.publish("spBv1.0/" + my_group_id + "/DDATA/" + my_node_name + "/" + my_device_name, byte_array, 0, False)
 
     # Sit and wait for inbound or outbound events
     for _ in range(5):

@@ -28,8 +28,8 @@ from .array_packer import (
 )
 from .sparkplug_b_pb2 import Payload
 
-seqNum = 0
-bdSeq = 0
+seq_num = 0
+bd_seq = 0
 
 
 class DataSetDataType:
@@ -109,44 +109,44 @@ class ParameterDataType:
     Text = 14
 
 
-def getNodeDeathPayload():
+def get_node_death_payload():
     """Get an NDEATH payload.
 
     Always request this before requesting the Node Birth Payload
     """
     payload = Payload()
-    addMetric(payload, "bdSeq", None, MetricDataType.Int64, getBdSeqNum())
+    add_metric(payload, "bdSeq", None, MetricDataType.Int64, get_bd_seq_num())
     return payload
 
 
-def getNodeBirthPayload():
+def get_node_birth_payload():
     """Get an NBIRTH payload.
 
     Always request this after requesting the Node Death Payload
     """
-    global seqNum
-    seqNum = 0
+    global seq_num
+    seq_num = 0
     payload = Payload()
     payload.timestamp = int(round(time.time() * 1000))
-    payload.seq = getSeqNum()
-    addMetric(payload, "bdSeq", None, MetricDataType.Int64, bdSeq - 1)
+    payload.seq = get_seq_num()
+    add_metric(payload, "bdSeq", None, MetricDataType.Int64, bd_seq - 1)
     return payload
 
 
-def getDeviceBirthPayload():
+def get_device_birth_payload():
     """Get a DBIRTH payload."""
     payload = Payload()
     payload.timestamp = int(round(time.time() * 1000))
-    payload.seq = getSeqNum()
+    payload.seq = get_seq_num()
     return payload
 
 
-def getDdataPayload():
+def get_ddata_payload():
     """Get a DDATA payload."""
-    return getDeviceBirthPayload()
+    return get_device_birth_payload()
 
 
-def initDatasetMetric(payload, name, alias, columns, types):
+def init_dataset_metric(payload, name, alias, columns, types):
     """Add dataset metrics to a payload."""
     metric = payload.metrics.add()
     if name is not None:
@@ -163,7 +163,7 @@ def initDatasetMetric(payload, name, alias, columns, types):
     return metric.dataset_value
 
 
-def initTemplateMetric(payload, name, alias, templateRef):
+def init_template_metric(payload, name, alias, template_ref):
     """Add dataset metrics to a payload."""
     metric = payload.metrics.add()
     if name is not None:
@@ -174,8 +174,8 @@ def initTemplateMetric(payload, name, alias, templateRef):
     metric.datatype = MetricDataType.Template
 
     # Set up the template
-    if templateRef is not None:
-        metric.template_value.template_ref = templateRef
+    if template_ref is not None:
+        metric.template_value.template_ref = template_ref
         metric.template_value.is_definition = False
     else:
         metric.template_value.is_definition = True
@@ -189,7 +189,7 @@ def initTemplateMetric(payload, name, alias, templateRef):
 #     return addMetric(container, name, alias, type, value, timestamp)
 
 
-def addMetric(container, name, alias, type_, value, timestamp=None):
+def add_metric(container, name, alias, type_, value, timestamp=None):
     """Add metrics to a container which can be a payload or a template."""
     if timestamp is None:
         timestamp = int(round(time.time() * 1000))
@@ -311,16 +311,16 @@ def addMetric(container, name, alias, type_, value, timestamp=None):
     return metric
 
 
-def addHistoricalMetric(container, name, alias, type_, value):
+def add_historical_metric(container, name, alias, type_, value):
     """Add metrics to a container which can be a payload or a template."""
-    metric = addMetric(container, name, alias, type_, value)
+    metric = add_metric(container, name, alias, type_, value)
     metric.is_historical = True
 
     # Return the metric
     return metric
 
 
-def addNullMetric(container, name, alias, type_):
+def add_null_metric(container, name, alias, type_):
     """Add metrics to a container which can be a payload or a template."""
     metric = container.metrics.add()
     if name is not None:
@@ -401,23 +401,23 @@ def addNullMetric(container, name, alias, type_):
     return metric
 
 
-def getSeqNum():
+def get_seq_num():
     """Get the next sequence number."""
-    global seqNum
-    retVal = seqNum
-    # print("seqNum: " + str(retVal))
-    seqNum += 1
-    if seqNum == 256:
-        seqNum = 0
-    return retVal
+    global seq_num
+    ret_val = seq_num
+    # print("seqNum: " + str(ret_val))
+    seq_num += 1
+    if seq_num == 256:
+        seq_num = 0
+    return ret_val
 
 
-def getBdSeqNum():
+def get_bd_seq_num():
     """Get the next birth/death sequence number."""
-    global bdSeq
-    retVal = bdSeq
-    # print("bdSeqNum: " + str(retVal))
-    bdSeq += 1
-    if bdSeq == 256:
-        bdSeq = 0
-    return retVal
+    global bd_seq
+    ret_val = bd_seq
+    # print("bdSeqNum: " + str(ret_val))
+    bd_seq += 1
+    if bd_seq == 256:
+        bd_seq = 0
+    return ret_val
