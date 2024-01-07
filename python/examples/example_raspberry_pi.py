@@ -20,7 +20,6 @@ import pibrella
 
 from core.sparkplug_b import (
     MetricDataType,
-    ParameterDataType,
     add_metric,
     get_ddata_payload,
     get_device_birth_payload,

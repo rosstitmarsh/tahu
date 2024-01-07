@@ -227,7 +227,7 @@ def publish_device_birth():
         "DateTime Metric",
         None,
         MetricDataType.DateTime,
-        long(time.time() * 1000),
+        int(time.time() * 1000),
     )
 
     # Create the UDT definition value which includes two UDT members and a single parameter and add it to the payload
