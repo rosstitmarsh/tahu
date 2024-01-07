@@ -11,8 +11,22 @@
 
 import time
 
-import sparkplug_b_pb2
-from array_packer import *
+from .array_packer import (
+    convert_to_packed_boolean_array,
+    convert_to_packed_datetime_array,
+    convert_to_packed_double_array,
+    convert_to_packed_float_array,
+    convert_to_packed_int8_array,
+    convert_to_packed_int16_array,
+    convert_to_packed_int32_array,
+    convert_to_packed_int64_array,
+    convert_to_packed_string_array,
+    convert_to_packed_uint8_array,
+    convert_to_packed_uint16_array,
+    convert_to_packed_uint32_array,
+    convert_to_packed_uint64_array,
+)
+from .sparkplug_b_pb2 import Payload
 
 seqNum = 0
 bdSeq = 0
@@ -100,7 +114,7 @@ def getNodeDeathPayload():
 
     Always request this before requesting the Node Birth Payload
     """
-    payload = sparkplug_b_pb2.Payload()
+    payload = Payload()
     addMetric(payload, "bdSeq", None, MetricDataType.Int64, getBdSeqNum())
     return payload
 
@@ -112,7 +126,7 @@ def getNodeBirthPayload():
     """
     global seqNum
     seqNum = 0
-    payload = sparkplug_b_pb2.Payload()
+    payload = Payload()
     payload.timestamp = int(round(time.time() * 1000))
     payload.seq = getSeqNum()
     addMetric(payload, "bdSeq", None, MetricDataType.Int64, bdSeq - 1)
@@ -121,7 +135,7 @@ def getNodeBirthPayload():
 
 def getDeviceBirthPayload():
     """Get a DBIRTH payload."""
-    payload = sparkplug_b_pb2.Payload()
+    payload = Payload()
     payload.timestamp = int(round(time.time() * 1000))
     payload.seq = getSeqNum()
     return payload
