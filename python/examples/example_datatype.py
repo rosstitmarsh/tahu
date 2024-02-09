@@ -49,8 +49,8 @@ def on_connect(client, userdata, flags, rc):
 
     # Subscribing in on_connect() means that if we lose the connection and
     # reconnect then subscriptions will be renewed.
-    client.subscribe("spBv1.0/" + my_group_id + "/NCMD/" + my_node_name + "/#")
-    client.subscribe("spBv1.0/" + my_group_id + "/DCMD/" + my_node_name + "/#")
+    client.subscribe(f"spBv1.0/{my_group_id}/NCMD/{my_node_name}/#")
+    client.subscribe(f"spBv1.0/{my_group_id}/DCMD/{my_node_name}/#")
 
 
 def on_message(client, userdata, msg):
@@ -161,7 +161,7 @@ def publish_node_birth():
     # Publish the node birth certificate
     byte_array = bytearray(payload.SerializeToString())
     client.publish(
-        "spBv1.0/" + my_group_id + "/NBIRTH/" + my_node_name, byte_array, 0, False
+        f"spBv1.0/{my_group_id}/NBIRTH/{my_node_name}", byte_array, 0, False
     )
 
 
