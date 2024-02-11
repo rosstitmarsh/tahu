@@ -293,7 +293,7 @@ def add_metric(container, name, alias, type_, value, timestamp=None):
         metric.datatype = MetricDataType.DateTimeArray
         metric.bytes_value = convert_to_packed_datetime_array(value)
     else:
-        print("Invalid: " + str(type_))
+        print(f"Invalid: {type_}")
 
     # Return the metric
     return metric
@@ -381,7 +381,7 @@ def add_null_metric(container, name, alias, type_):
     elif type_ == MetricDataType.DateTimeArray:
         metric.datatype = MetricDataType.DateTimeArray
     else:
-        print("Invalid: " + str(type_))
+        print(f"Invalid: {type_}")
 
     # Return the metric
     return metric

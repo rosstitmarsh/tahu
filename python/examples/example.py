@@ -57,9 +57,9 @@ class ExampleNode(SparkplugNode):
     def on_connect(self, client, userdata, flags, rc):
         """Callback for when the client receives a CONNACK response from the server."""
         if rc == 0:
-            print("Connected with result code " + str(rc))
+            print(f"Connected with result code {rc}")
         else:
-            print("Failed to connect with result code " + str(rc))
+            print(f"Failed to connect with result code {rc}")
             sys.exit()
 
         # Subscribing in on_connect() means that if we lose the connection and
@@ -69,7 +69,7 @@ class ExampleNode(SparkplugNode):
 
     def on_message(self, client, userdata, msg):
         """Callback for when a PUBLISH message is received from the server."""
-        print("Message arrived: " + msg.topic)
+        print(f"Message arrived: {msg.topic}")
         tokens = msg.topic.split("/")
 
         if (
@@ -178,7 +178,7 @@ class ExampleNode(SparkplugNode):
                         False,
                     )
                 else:
-                    print("Unknown command: " + metric.name)
+                    print(f"Unknown command: {metric.name}")
         else:
             print("Unknown command...")
 
