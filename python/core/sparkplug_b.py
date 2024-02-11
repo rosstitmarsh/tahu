@@ -10,6 +10,10 @@
 #   Cirrus Link Solutions - initial implementation
 
 import time
+from typing import List
+
+from paho.mqtt.client import Client as MQTTClient
+from paho.mqtt.client import MQTTMessage
 
 from .array_packer import (
     convert_to_packed_boolean_array,
@@ -88,10 +92,45 @@ class ParameterDataType:
     Text = 14
 
 
+class SparkplugDevice:
+    def __init__(self, id_: str) -> None:
+        self.id = id_
+
+    def get_device_birth_payload(self, seq: int):
+        """Get a DBIRTH payload."""
+        payload = Payload()
+        payload.timestamp = int(round(time.time() * 1000))
+        payload.seq = seq
+        return payload
+
+    def get_ddata_payload(self, seq: int):
+        """Get a DDATA payload."""
+        return self.get_device_birth_payload(seq)
+
+    def handle_dcmd(self, client: MQTTClient, payload: Payload, topic_base: str):
+        ...
+
+    def publish_device_birth(self, client: MQTTClient, seq: int, topic_base: str):
+        raise NotImplementedError
+
+    def publish_ddata(self, client: MQTTClient, seq: int, topic_base: str):
+        raise NotImplementedError
+
+
 class SparkplugNode:
-    def __init__(self) -> None:
+    def __init__(self, id_: str, group_id: str, devices: List[SparkplugDevice]) -> None:
+        self.id = id_
+        self.group_id = group_id
+        self._devices = devices
+
         self.seq_num = 0
         self.bd_seq = 0
+
+    def on_connect(self, client: MQTTClient, userdata, flags, rc):
+        raise NotImplementedError
+
+    def on_message(self, client: MQTTClient, userdata, msg: MQTTMessage):
+        raise NotImplementedError
 
     def get_node_death_payload(self):
         """Get an NDEATH payload.
@@ -114,17 +153,6 @@ class SparkplugNode:
         add_metric(payload, "bdSeq", None, MetricDataType.Int64, self.bd_seq - 1)
         return payload
 
-    def get_device_birth_payload(self):
-        """Get a DBIRTH payload."""
-        payload = Payload()
-        payload.timestamp = int(round(time.time() * 1000))
-        payload.seq = self.get_seq_num()
-        return payload
-
-    def get_ddata_payload(self):
-        """Get a DDATA payload."""
-        return self.get_device_birth_payload()
-
     def get_seq_num(self):
         """Get the next sequence number."""
         ret_val = self.seq_num
@@ -140,6 +168,15 @@ class SparkplugNode:
         if self.bd_seq == 256:
             self.bd_seq = 0
         return ret_val
+
+    def handle_ncmd(self, client: MQTTClient, payload: Payload):
+        ...
+
+    def publish_birth(self, client: MQTTClient):
+        raise NotImplementedError
+
+    def publish_node_birth(self, client: MQTTClient):
+        raise NotImplementedError
 
 
 def init_dataset_metric(payload, name, alias, columns, types):

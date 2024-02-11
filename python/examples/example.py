@@ -22,6 +22,7 @@ from core.sparkplug_b import (
     DataSetDataType,
     MetricDataType,
     ParameterDataType,
+    SparkplugDevice,
     SparkplugNode,
     add_metric,
     add_null_metric,
@@ -47,13 +48,156 @@ class AliasMap:
     My_Custom_Motor = 12
 
 
-class ExampleNode(SparkplugNode):
-    def __init__(self, group_id, node_name, device_name) -> None:
-        super().__init__()
-        self.group_id = group_id
-        self.node_name = node_name
-        self.device_name = device_name
+class ExampleDevice(SparkplugDevice):
+    def publish_device_birth(self, client, seq, topic_base):
+        """Publish the DBIRTH certificate."""
+        print("Publishing Device Birth")
 
+        # Get the payload
+        payload = self.get_device_birth_payload(seq)
+
+        # Add some device metrics
+        add_metric(
+            payload,
+            "input/Device Metric0",
+            AliasMap.Device_Metric0,
+            MetricDataType.String,
+            "hello device",
+        )
+        add_metric(
+            payload,
+            "input/Device Metric1",
+            AliasMap.Device_Metric1,
+            MetricDataType.Boolean,
+            True,
+        )
+        add_metric(
+            payload,
+            "output/Device Metric2",
+            AliasMap.Device_Metric2,
+            MetricDataType.Int16,
+            16,
+        )
+        add_metric(
+            payload,
+            "output/Device Metric3",
+            AliasMap.Device_Metric3,
+            MetricDataType.Boolean,
+            True,
+        )
+
+        # Create the UDT definition value which includes two UDT members and a single parameter and add it to the payload
+        template = init_template_metric(
+            payload, "My_Custom_Motor", AliasMap.My_Custom_Motor, "Custom_Motor"
+        )
+        template_parameter = template.parameters.add()
+        template_parameter.name = "Index"
+        template_parameter.type = ParameterDataType.String
+        template_parameter.string_value = "1"
+        add_metric(
+            template, "RPMs", None, MetricDataType.Int32, 123
+        )  # No alias in UDT members
+        add_metric(
+            template, "AMPs", None, MetricDataType.Int32, 456
+        )  # No alias in UDT members
+
+        # Publish the initial data with the Device BIRTH certificate
+        total_byte_array = bytearray(payload.SerializeToString())
+        client.publish(f"{topic_base}/{self.id}", total_byte_array, 0, False)
+
+    def publish_ddata(self, client, seq, topic_base):
+        payload = self.get_ddata_payload(seq)
+
+        # Add some random data to the inputs
+        add_metric(
+            payload,
+            None,
+            AliasMap.Device_Metric0,
+            MetricDataType.String,
+            "".join(random.choice(string.ascii_lowercase) for _ in range(12)),
+        )
+
+        # Note this data we're setting to STALE via the propertyset as an example
+        metric = add_metric(
+            payload,
+            None,
+            AliasMap.Device_Metric1,
+            MetricDataType.Boolean,
+            random.choice([True, False]),
+        )
+        metric.properties.keys.extend(["Quality"])
+        property_value = metric.properties.values.add()
+        property_value.type = ParameterDataType.Int32
+        property_value.int_value = 500
+
+        # Publish a message data
+        byte_array = bytearray(payload.SerializeToString())
+        client.publish(
+            f"{topic_base}/{self.id}",
+            byte_array,
+            0,
+            False,
+        )
+
+    def handle_dcmd(self, client, payload, topic_base):
+        for metric in payload.metrics:
+            if (
+                metric.name == "output/Device Metric2"
+                or metric.alias == AliasMap.Device_Metric2
+            ):
+                # This is a metric we declared in our DBIRTH message and we're emulating an output.
+                # So, on incoming 'writes' to the output we must publish a DDATA with the new output
+                # value.  If this were a real output we'd write to the output and then read it back
+                # before publishing a DDATA message.
+
+                # We know this is an Int16 because of how we declated it in the DBIRTH
+                new_value = metric.int_value
+                print(f"CMD message for output/Device Metric2 - New Value: {new_value}")
+
+                # Create the DDATA payload - Use the alias because this isn't the DBIRTH
+                payload = self.get_ddata_payload()
+                add_metric(
+                    payload,
+                    None,
+                    AliasMap.Device_Metric2,
+                    MetricDataType.Int16,
+                    new_value,
+                )
+
+                # Publish a message data
+                byte_array = bytearray(payload.SerializeToString())
+                client.publish(f"{topic_base}/{self.id}", byte_array, 0, False)
+            elif (
+                metric.name == "output/Device Metric3"
+                or metric.alias == AliasMap.Device_Metric3
+            ):
+                # This is a metric we declared in our DBIRTH message and we're emulating an output.
+                # So, on incoming 'writes' to the output we must publish a DDATA with the new output
+                # value.  If this were a real output we'd write to the output and then read it back
+                # before publishing a DDATA message.
+
+                # We know this is an Boolean because of how we declated it in the DBIRTH
+                new_value = metric.boolean_value
+                print(f"CMD message for output/Device Metric3 - New Value: {new_value}")
+
+                # Create the DDATA payload - use the alias because this isn't the DBIRTH
+                payload = self.get_ddata_payload()
+                add_metric(
+                    payload,
+                    None,
+                    AliasMap.Device_Metric3,
+                    MetricDataType.Boolean,
+                    new_value,
+                )
+
+                # Publish a message data
+                byte_array = bytearray(payload.SerializeToString())
+                client.publish(f"{topic_base}/{self.id}", byte_array, 0, False)
+            else:
+                print(f"Unknown command: {metric.name}")
+
+
+class ExampleNode(SparkplugNode):
     def on_connect(self, client, userdata, flags, rc):
         """Callback for when the client receives a CONNACK response from the server."""
         if rc == 0:
@@ -64,8 +208,8 @@ class ExampleNode(SparkplugNode):
 
         # Subscribing in on_connect() means that if we lose the connection and
         # reconnect then subscriptions will be renewed.
-        client.subscribe(f"spBv1.0/{self.group_id}/NCMD/{self.node_name}/#")
-        client.subscribe(f"spBv1.0/{self.group_id}/DCMD/{self.node_name}/#")
+        client.subscribe(f"spBv1.0/{self.group_id}/NCMD/{self.id}/#")
+        client.subscribe(f"spBv1.0/{self.group_id}/DCMD/{self.id}/#")
 
     def on_message(self, client, userdata, msg):
         """Callback for when a PUBLISH message is received from the server."""
@@ -75,119 +219,74 @@ class ExampleNode(SparkplugNode):
         if (
             tokens[0] == "spBv1.0"
             and tokens[1] == self.group_id
-            and (tokens[2] == "NCMD" or tokens[2] == "DCMD")
-            and tokens[3] == self.node_name
+            and tokens[2] == "NCMD"
+            and tokens[3] == self.id
         ):
             inbound_payload = Payload()
             inbound_payload.ParseFromString(msg.payload)
-            for metric in inbound_payload.metrics:
-                if (
-                    metric.name == "Node Control/Next Server"
-                    or metric.alias == AliasMap.Next_Server
-                ):
-                    # 'Node Control/Next Server' is an NCMD used to tell the device/client application to
-                    # disconnect from the current MQTT server and connect to the next MQTT server in the
-                    # list of available servers.  This is used for clients that have a pool of MQTT servers
-                    # to connect to.
-                    print(
-                        "'Node Control/Next Server' is not implemented in this example"
-                    )
-                elif (
-                    metric.name == "Node Control/Rebirth"
-                    or metric.alias == AliasMap.Rebirth
-                ):
-                    # 'Node Control/Rebirth' is an NCMD used to tell the device/client application to resend
-                    # its full NBIRTH and DBIRTH again.  MQTT Engine will send this NCMD to a device/client
-                    # application if it receives an NDATA or DDATA with a metric that was not published in the
-                    # original NBIRTH or DBIRTH.  This is why the application must send all known metrics in
-                    # its original NBIRTH and DBIRTH messages.
-                    self.publish_birth()
-                elif (
-                    metric.name == "Node Control/Reboot"
-                    or metric.alias == AliasMap.Reboot
-                ):
-                    # 'Node Control/Reboot' is an NCMD used to tell a device/client application to reboot
-                    # This can be used for devices that need a full application reset via a soft reboot.
-                    # In this case, we fake a full reboot with a republishing of the NBIRTH and DBIRTH
-                    # messages.
-                    self.publish_birth()
-                elif (
-                    metric.name == "output/Device Metric2"
-                    or metric.alias == AliasMap.Device_Metric2
-                ):
-                    # This is a metric we declared in our DBIRTH message and we're emulating an output.
-                    # So, on incoming 'writes' to the output we must publish a DDATA with the new output
-                    # value.  If this were a real output we'd write to the output and then read it back
-                    # before publishing a DDATA message.
-
-                    # We know this is an Int16 because of how we declated it in the DBIRTH
-                    new_value = metric.int_value
-                    print(
-                        f"CMD message for output/Device Metric2 - New Value: {new_value}"
-                    )
-
-                    # Create the DDATA payload - Use the alias because this isn't the DBIRTH
-                    payload = self.get_ddata_payload()
-                    add_metric(
-                        payload,
-                        None,
-                        AliasMap.Device_Metric2,
-                        MetricDataType.Int16,
-                        new_value,
-                    )
-
-                    # Publish a message data
-                    byte_array = bytearray(payload.SerializeToString())
-                    client.publish(
-                        f"spBv1.0/{self.group_id}/DDATA/{self.node_name}/{self.device_name}",
-                        byte_array,
-                        0,
-                        False,
-                    )
-                elif (
-                    metric.name == "output/Device Metric3"
-                    or metric.alias == AliasMap.Device_Metric3
-                ):
-                    # This is a metric we declared in our DBIRTH message and we're emulating an output.
-                    # So, on incoming 'writes' to the output we must publish a DDATA with the new output
-                    # value.  If this were a real output we'd write to the output and then read it back
-                    # before publishing a DDATA message.
-
-                    # We know this is an Boolean because of how we declated it in the DBIRTH
-                    new_value = metric.boolean_value
-                    print(
-                        f"CMD message for output/Device Metric3 - New Value: {new_value}"
-                    )
-
-                    # Create the DDATA payload - use the alias because this isn't the DBIRTH
-                    payload = self.get_ddata_payload()
-                    add_metric(
-                        payload,
-                        None,
-                        AliasMap.Device_Metric3,
-                        MetricDataType.Boolean,
-                        new_value,
-                    )
-
-                    # Publish a message data
-                    byte_array = bytearray(payload.SerializeToString())
-                    client.publish(
-                        f"spBv1.0/{self.group_id}/DDATA/{self.node_name}/{self.device_name}",
-                        byte_array,
-                        0,
-                        False,
-                    )
-                else:
-                    print(f"Unknown command: {metric.name}")
+            self.handle_ncmd(client, inbound_payload)
+        elif (
+            tokens[0] == "spBv1.0"
+            and tokens[1] == self.group_id
+            and tokens[2] == "DCMD"
+            and tokens[3] == self.id
+        ):
+            device_id = tokens[4]
+            inbound_payload = Payload()
+            inbound_payload.ParseFromString(msg.payload)
+            device = next((d for d in self._devices if d.id == device_id), None)
+            if device:
+                device.handle_dcmd(
+                    client,
+                    inbound_payload,
+                    f"spBv1.0/{self.group_id}/DDATA/{self.id}",
+                )
         else:
             print("Unknown command...")
 
         print("Done publishing")
 
+    def handle_ncmd(self, _, payload):
+        for metric in payload.metrics:
+            if (
+                metric.name == "Node Control/Next Server"
+                or metric.alias == AliasMap.Next_Server
+            ):
+                # 'Node Control/Next Server' is an NCMD used to tell the device/client application to
+                # disconnect from the current MQTT server and connect to the next MQTT server in the
+                # list of available servers.  This is used for clients that have a pool of MQTT servers
+                # to connect to.
+                print("'Node Control/Next Server' is not implemented in this example")
+            elif (
+                metric.name == "Node Control/Rebirth"
+                or metric.alias == AliasMap.Rebirth
+            ):
+                # 'Node Control/Rebirth' is an NCMD used to tell the device/client application to resend
+                # its full NBIRTH and DBIRTH again.  MQTT Engine will send this NCMD to a device/client
+                # application if it receives an NDATA or DDATA with a metric that was not published in the
+                # original NBIRTH or DBIRTH.  This is why the application must send all known metrics in
+                # its original NBIRTH and DBIRTH messages.
+                self.publish_birth()
+            elif (
+                metric.name == "Node Control/Reboot" or metric.alias == AliasMap.Reboot
+            ):
+                # 'Node Control/Reboot' is an NCMD used to tell a device/client application to reboot
+                # This can be used for devices that need a full application reset via a soft reboot.
+                # In this case, we fake a full reboot with a republishing of the NBIRTH and DBIRTH
+                # messages.
+                self.publish_birth()
+            else:
+                print(f"Unknown command: {metric.name}")
+
     def publish_birth(self, client):
         """Publish the BIRTH certificates."""
         self.publish_node_birth(client)
-        self.publish_device_birth(client)
+        for device in self._devices:
+            device.publish_device_birth(
+                client,
+                self.get_seq_num(),
+                f"spBv1.0/{self.group_id}/DBIRTH/{self.id}",
+            )
 
     def publish_node_birth(self, client):
         """Publish the NBIRTH certificate."""
@@ -282,68 +381,7 @@ class ExampleNode(SparkplugNode):
         # Publish the node birth certificate
         byte_array = bytearray(payload.SerializeToString())
         client.publish(
-            f"spBv1.0/{self.group_id}/NBIRTH/{self.node_name}", byte_array, 0, False
-        )
-
-    def publish_device_birth(self, client):
-        """Publish the DBIRTH certificate."""
-        print("Publishing Device Birth")
-
-        # Get the payload
-        payload = self.get_device_birth_payload()
-
-        # Add some device metrics
-        add_metric(
-            payload,
-            "input/Device Metric0",
-            AliasMap.Device_Metric0,
-            MetricDataType.String,
-            "hello device",
-        )
-        add_metric(
-            payload,
-            "input/Device Metric1",
-            AliasMap.Device_Metric1,
-            MetricDataType.Boolean,
-            True,
-        )
-        add_metric(
-            payload,
-            "output/Device Metric2",
-            AliasMap.Device_Metric2,
-            MetricDataType.Int16,
-            16,
-        )
-        add_metric(
-            payload,
-            "output/Device Metric3",
-            AliasMap.Device_Metric3,
-            MetricDataType.Boolean,
-            True,
-        )
-
-        # Create the UDT definition value which includes two UDT members and a single parameter and add it to the payload
-        template = init_template_metric(
-            payload, "My_Custom_Motor", AliasMap.My_Custom_Motor, "Custom_Motor"
-        )
-        template_parameter = template.parameters.add()
-        template_parameter.name = "Index"
-        template_parameter.type = ParameterDataType.String
-        template_parameter.string_value = "1"
-        add_metric(
-            template, "RPMs", None, MetricDataType.Int32, 123
-        )  # No alias in UDT members
-        add_metric(
-            template, "AMPs", None, MetricDataType.Int32, 456
-        )  # No alias in UDT members
-
-        # Publish the initial data with the Device BIRTH certificate
-        total_byte_array = bytearray(payload.SerializeToString())
-        client.publish(
-            f"spBv1.0/{self.group_id}/DBIRTH/{self.node_name}/{self.device_name}",
-            total_byte_array,
-            0,
-            False,
+            f"spBv1.0/{self.group_id}/NBIRTH/{self.id}", byte_array, 0, False
         )
 
 
@@ -357,7 +395,8 @@ def main(
 ):
     print("Starting main application")
 
-    node = ExampleNode(group_id, node_name, device_name)
+    device = ExampleDevice(device_name)
+    node = ExampleNode(node_name, group_id, [device])
 
     # Start of main program - Set up the MQTT client connection
     client = mqtt.Client(server_url, 1883, 60)
@@ -368,7 +407,7 @@ def main(
     # Create the node death payload
     death_payload = node.get_node_death_payload()
     death_byte_array = bytearray(death_payload.SerializeToString())
-    death_topic = f"spBv1.0/{node.group_id}/NDEATH/{node.node_name}"
+    death_topic = f"spBv1.0/{node.group_id}/NDEATH/{node.id}"
     client.will_set(death_topic, death_byte_array, 0, False)
 
     client.username_pw_set(username, password)
@@ -383,37 +422,8 @@ def main(
 
     while True:
         # Periodically publish some new data
-        payload = node.get_ddata_payload()
-
-        # Add some random data to the inputs
-        add_metric(
-            payload,
-            None,
-            AliasMap.Device_Metric0,
-            MetricDataType.String,
-            "".join(random.choice(string.ascii_lowercase) for _ in range(12)),
-        )
-
-        # Note this data we're setting to STALE via the propertyset as an example
-        metric = add_metric(
-            payload,
-            None,
-            AliasMap.Device_Metric1,
-            MetricDataType.Boolean,
-            random.choice([True, False]),
-        )
-        metric.properties.keys.extend(["Quality"])
-        property_value = metric.properties.values.add()
-        property_value.type = ParameterDataType.Int32
-        property_value.int_value = 500
-
-        # Publish a message data
-        byte_array = bytearray(payload.SerializeToString())
-        client.publish(
-            f"spBv1.0/{node.group_id}/DDATA/{node.node_name}/{node.device_name}",
-            byte_array,
-            0,
-            False,
+        device.publish_ddata(
+            client, node.get_seq_num(), f"spBv1.0/{node.group_id}/DDATA/{node.id}"
         )
 
         # Sit and wait for inbound or outbound events
