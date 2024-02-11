@@ -28,9 +28,6 @@ from .array_packer import (
 )
 from .sparkplug_b_pb2 import Payload
 
-seq_num = 0
-bd_seq = 0
-
 
 class DataSetDataType:
     Unknown = 0
@@ -91,41 +88,58 @@ class ParameterDataType:
     Text = 14
 
 
-def get_node_death_payload():
-    """Get an NDEATH payload.
+class SparkplugNode:
+    def __init__(self) -> None:
+        self.seq_num = 0
+        self.bd_seq = 0
 
-    Always request this before requesting the Node Birth Payload
-    """
-    payload = Payload()
-    add_metric(payload, "bdSeq", None, MetricDataType.Int64, get_bd_seq_num())
-    return payload
+    def get_node_death_payload(self):
+        """Get an NDEATH payload.
 
+        Always request this before requesting the Node Birth Payload
+        """
+        payload = Payload()
+        add_metric(payload, "bdSeq", None, MetricDataType.Int64, self.get_bd_seq_num())
+        return payload
 
-def get_node_birth_payload():
-    """Get an NBIRTH payload.
+    def get_node_birth_payload(self):
+        """Get an NBIRTH payload.
 
-    Always request this after requesting the Node Death Payload
-    """
-    global seq_num
-    seq_num = 0
-    payload = Payload()
-    payload.timestamp = int(round(time.time() * 1000))
-    payload.seq = get_seq_num()
-    add_metric(payload, "bdSeq", None, MetricDataType.Int64, bd_seq - 1)
-    return payload
+        Always request this after requesting the Node Death Payload
+        """
+        self.seq_num = 0
+        payload = Payload()
+        payload.timestamp = int(round(time.time() * 1000))
+        payload.seq = self.get_seq_num()
+        add_metric(payload, "bdSeq", None, MetricDataType.Int64, self.bd_seq - 1)
+        return payload
 
+    def get_device_birth_payload(self):
+        """Get a DBIRTH payload."""
+        payload = Payload()
+        payload.timestamp = int(round(time.time() * 1000))
+        payload.seq = self.get_seq_num()
+        return payload
 
-def get_device_birth_payload():
-    """Get a DBIRTH payload."""
-    payload = Payload()
-    payload.timestamp = int(round(time.time() * 1000))
-    payload.seq = get_seq_num()
-    return payload
+    def get_ddata_payload(self):
+        """Get a DDATA payload."""
+        return self.get_device_birth_payload()
 
+    def get_seq_num(self):
+        """Get the next sequence number."""
+        ret_val = self.seq_num
+        self.seq_num += 1
+        if self.seq_num == 256:
+            self.seq_num = 0
+        return ret_val
 
-def get_ddata_payload():
-    """Get a DDATA payload."""
-    return get_device_birth_payload()
+    def get_bd_seq_num(self):
+        """Get the next birth/death sequence number."""
+        ret_val = self.bd_seq
+        self.bd_seq += 1
+        if self.bd_seq == 256:
+            self.bd_seq = 0
+        return ret_val
 
 
 def init_dataset_metric(payload, name, alias, columns, types):
@@ -371,23 +385,3 @@ def add_null_metric(container, name, alias, type_):
 
     # Return the metric
     return metric
-
-
-def get_seq_num():
-    """Get the next sequence number."""
-    global seq_num
-    ret_val = seq_num
-    seq_num += 1
-    if seq_num == 256:
-        seq_num = 0
-    return ret_val
-
-
-def get_bd_seq_num():
-    """Get the next birth/death sequence number."""
-    global bd_seq
-    ret_val = bd_seq
-    bd_seq += 1
-    if bd_seq == 256:
-        bd_seq = 0
-    return ret_val
