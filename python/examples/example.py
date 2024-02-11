@@ -19,9 +19,6 @@ import time
 import paho.mqtt.client as mqtt
 
 from core.sparkplug_b import (
-    DataSetDataType,
-    MetricDataType,
-    ParameterDataType,
     SparkplugDevice,
     SparkplugNode,
     add_metric,
@@ -29,7 +26,7 @@ from core.sparkplug_b import (
     init_dataset_metric,
     init_template_metric,
 )
-from core.sparkplug_b_pb2 import Payload
+from core.sparkplug_b_pb2 import DataType, Payload
 
 
 class AliasMap:
@@ -61,28 +58,28 @@ class ExampleDevice(SparkplugDevice):
             payload,
             "input/Device Metric0",
             AliasMap.Device_Metric0,
-            MetricDataType.String,
+            DataType.String,
             "hello device",
         )
         add_metric(
             payload,
             "input/Device Metric1",
             AliasMap.Device_Metric1,
-            MetricDataType.Boolean,
+            DataType.Boolean,
             True,
         )
         add_metric(
             payload,
             "output/Device Metric2",
             AliasMap.Device_Metric2,
-            MetricDataType.Int16,
+            DataType.Int16,
             16,
         )
         add_metric(
             payload,
             "output/Device Metric3",
             AliasMap.Device_Metric3,
-            MetricDataType.Boolean,
+            DataType.Boolean,
             True,
         )
 
@@ -92,13 +89,13 @@ class ExampleDevice(SparkplugDevice):
         )
         template_parameter = template.parameters.add()
         template_parameter.name = "Index"
-        template_parameter.type = ParameterDataType.String
+        template_parameter.type = DataType.String
         template_parameter.string_value = "1"
         add_metric(
-            template, "RPMs", None, MetricDataType.Int32, 123
+            template, "RPMs", None, DataType.Int32, 123
         )  # No alias in UDT members
         add_metric(
-            template, "AMPs", None, MetricDataType.Int32, 456
+            template, "AMPs", None, DataType.Int32, 456
         )  # No alias in UDT members
 
         # Publish the initial data with the Device BIRTH certificate
@@ -113,7 +110,7 @@ class ExampleDevice(SparkplugDevice):
             payload,
             None,
             AliasMap.Device_Metric0,
-            MetricDataType.String,
+            DataType.String,
             "".join(random.choice(string.ascii_lowercase) for _ in range(12)),
         )
 
@@ -122,12 +119,12 @@ class ExampleDevice(SparkplugDevice):
             payload,
             None,
             AliasMap.Device_Metric1,
-            MetricDataType.Boolean,
+            DataType.Boolean,
             random.choice([True, False]),
         )
         metric.properties.keys.extend(["Quality"])
         property_value = metric.properties.values.add()
-        property_value.type = ParameterDataType.Int32
+        property_value.type = DataType.Int32
         property_value.int_value = 500
 
         # Publish a message data
@@ -160,7 +157,7 @@ class ExampleDevice(SparkplugDevice):
                     payload,
                     None,
                     AliasMap.Device_Metric2,
-                    MetricDataType.Int16,
+                    DataType.Int16,
                     new_value,
                 )
 
@@ -186,7 +183,7 @@ class ExampleDevice(SparkplugDevice):
                     payload,
                     None,
                     AliasMap.Device_Metric3,
-                    MetricDataType.Boolean,
+                    DataType.Boolean,
                     new_value,
                 )
 
@@ -300,21 +297,21 @@ class ExampleNode(SparkplugNode):
             payload,
             "Node Control/Next Server",
             AliasMap.Next_Server,
-            MetricDataType.Boolean,
+            DataType.Boolean,
             False,
         )
         add_metric(
             payload,
             "Node Control/Rebirth",
             AliasMap.Rebirth,
-            MetricDataType.Boolean,
+            DataType.Boolean,
             False,
         )
         add_metric(
             payload,
             "Node Control/Reboot",
             AliasMap.Reboot,
-            MetricDataType.Boolean,
+            DataType.Boolean,
             False,
         )
 
@@ -323,19 +320,17 @@ class ExampleNode(SparkplugNode):
             payload,
             "Node Metric0",
             AliasMap.Node_Metric0,
-            MetricDataType.String,
+            DataType.String,
             "hello node",
         )
         add_metric(
-            payload, "Node Metric1", AliasMap.Node_Metric1, MetricDataType.Boolean, True
+            payload, "Node Metric1", AliasMap.Node_Metric1, DataType.Boolean, True
         )
-        add_null_metric(
-            payload, "Node Metric3", AliasMap.Node_Metric3, MetricDataType.Int32
-        )
+        add_null_metric(payload, "Node Metric3", AliasMap.Node_Metric3, DataType.Int32)
 
         # Create a DataSet (012 - 345) two rows with Int8, Int16, and Int32 contents and headers Int8s, Int16s, Int32s and add it to the payload
         columns = ["Int8s", "Int16s", "Int32s"]
-        types = [DataSetDataType.Int8, DataSetDataType.Int16, DataSetDataType.Int32]
+        types = [DataType.Int8, DataType.Int16, DataType.Int32]
         dataset = init_dataset_metric(
             payload, "DataSet", AliasMap.Dataset, columns, types
         )
@@ -356,11 +351,11 @@ class ExampleNode(SparkplugNode):
 
         # Add a metric with a custom property
         metric = add_metric(
-            payload, "Node Metric2", AliasMap.Node_Metric2, MetricDataType.Int16, 13
+            payload, "Node Metric2", AliasMap.Node_Metric2, DataType.Int16, 13
         )
         metric.properties.keys.extend(["engUnit"])
         property_value = metric.properties.values.add()
-        property_value.type = ParameterDataType.String
+        property_value.type = DataType.String
         property_value.string_value = "MyCustomUnits"
 
         # Create the UDT definition value which includes two UDT members and a single parameter and add it to the payload
@@ -369,14 +364,10 @@ class ExampleNode(SparkplugNode):
         )  # No alias for Template definitions
         template_parameter = template.parameters.add()
         template_parameter.name = "Index"
-        template_parameter.type = ParameterDataType.String
+        template_parameter.type = DataType.String
         template_parameter.string_value = "0"
-        add_metric(
-            template, "RPMs", None, MetricDataType.Int32, 0
-        )  # No alias in UDT members
-        add_metric(
-            template, "AMPs", None, MetricDataType.Int32, 0
-        )  # No alias in UDT members
+        add_metric(template, "RPMs", None, DataType.Int32, 0)  # No alias in UDT members
+        add_metric(template, "AMPs", None, DataType.Int32, 0)  # No alias in UDT members
 
         # Publish the node birth certificate
         byte_array = bytearray(payload.SerializeToString())
