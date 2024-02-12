@@ -49,7 +49,6 @@ class ExampleDevice(SparkplugDevice):
 
         # Get the payload
         payload = self.get_device_birth_payload(seq)
-
         payload.metrics.extend(
             [
                 # Add some device metrics
@@ -90,12 +89,9 @@ class ExampleDevice(SparkplugDevice):
                             )
                         ],
                         metrics=[
-                            create_metric(
-                                "RPMs", None, DataType.Int32, 123
-                            ),  # No alias in UDT members
-                            create_metric(
-                                "AMPs", None, DataType.Int32, 456
-                            ),  # No alias in UDT members
+                            # No alias in UDT members
+                            create_metric("RPMs", None, DataType.Int32, 123),
+                            create_metric("AMPs", None, DataType.Int32, 456),
                         ],
                     ),
                 ),
@@ -108,26 +104,30 @@ class ExampleDevice(SparkplugDevice):
 
     def publish_ddata(self, client, seq, topic_base):
         payload = self.get_ddata_payload(seq)
-
-        # Add some random data to the inputs
-        create_metric(
-            None,
-            AliasMap.Device_Metric0,
-            DataType.String,
-            "".join(random.choice(string.ascii_lowercase) for _ in range(12)),
+        payload.metrics.extend(
+            [
+                # Add some random data to the inputs
+                create_metric(
+                    None,
+                    AliasMap.Device_Metric0,
+                    DataType.String,
+                    "".join(random.choice(string.ascii_lowercase) for _ in range(12)),
+                ),
+                # Note this data we're setting to STALE via the propertyset as an example
+                create_metric(
+                    None,
+                    AliasMap.Device_Metric1,
+                    DataType.Boolean,
+                    random.choice([True, False]),
+                    properties=Payload.PropertySet(
+                        keys=["Quality"],
+                        values=[
+                            Payload.PropertyValue(type=DataType.Int32, int_value=500)
+                        ],
+                    ),
+                ),
+            ]
         )
-
-        # Note this data we're setting to STALE via the propertyset as an example
-        metric = create_metric(
-            None,
-            AliasMap.Device_Metric1,
-            DataType.Boolean,
-            random.choice([True, False]),
-        )
-        metric.properties.keys.extend(["Quality"])
-        property_value = metric.properties.values.add()
-        property_value.type = DataType.Int32
-        property_value.int_value = 500
 
         # Publish a message data
         byte_array = bytearray(payload.SerializeToString())
@@ -289,7 +289,6 @@ class ExampleNode(SparkplugNode):
 
         # Create the node birth payload
         payload = self.get_node_birth_payload()
-
         payload.metrics.extend(
             [
                 # Set up the Node Controls
@@ -374,12 +373,9 @@ class ExampleNode(SparkplugNode):
                             )
                         ],
                         metrics=[
-                            create_metric(
-                                "RPMs", None, DataType.Int32, 0
-                            ),  # No alias in UDT members
-                            create_metric(
-                                "AMPs", None, DataType.Int32, 0
-                            ),  # No alias in UDT members
+                            # No alias in UDT members
+                            create_metric("RPMs", None, DataType.Int32, 0),
+                            create_metric("AMPs", None, DataType.Int32, 0),
                         ],
                     ),
                 ),
