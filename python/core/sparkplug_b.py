@@ -37,24 +37,28 @@ class SparkplugDevice:
     def __init__(self, id_: str) -> None:
         self.id = id_
 
-    def get_device_birth_payload(self, seq: int):
+    def get_device_birth_payload(self, seq: int) -> Payload:
         """Get a DBIRTH payload."""
-        payload = Payload()
-        payload.timestamp = int(round(time.time() * 1000))
-        payload.seq = seq
-        return payload
+        return Payload(
+            timestamp=int(round(time.time() * 1000)),
+            seq=seq,
+        )
 
-    def get_ddata_payload(self, seq: int):
+    def get_ddata_payload(self, seq: int) -> Payload:
         """Get a DDATA payload."""
         return self.get_device_birth_payload(seq)
 
-    def handle_dcmd(self, client: MQTTClient, payload: Payload, topic_base: str):
+    def handle_dcmd(
+        self, client: MQTTClient, payload: Payload, topic_base: str
+    ) -> None:
         ...
 
-    def publish_device_birth(self, client: MQTTClient, seq: int, topic_base: str):
+    def publish_device_birth(
+        self, client: MQTTClient, seq: int, topic_base: str
+    ) -> None:
         raise NotImplementedError
 
-    def publish_ddata(self, client: MQTTClient, seq: int, topic_base: str):
+    def publish_ddata(self, client: MQTTClient, seq: int, topic_base: str) -> None:
         raise NotImplementedError
 
 
@@ -67,13 +71,13 @@ class SparkplugNode:
         self.seq_num = 0
         self.bd_seq = 0
 
-    def on_connect(self, client: MQTTClient, userdata, flags, rc):
+    def on_connect(self, client: MQTTClient, userdata, flags, rc) -> None:
         raise NotImplementedError
 
-    def on_message(self, client: MQTTClient, userdata, msg: MQTTMessage):
+    def on_message(self, client: MQTTClient, userdata, msg: MQTTMessage) -> None:
         raise NotImplementedError
 
-    def get_node_death_payload(self):
+    def get_node_death_payload(self) -> Payload:
         """Get an NDEATH payload.
 
         Always request this before requesting the Node Birth Payload
@@ -84,7 +88,7 @@ class SparkplugNode:
             ]
         )
 
-    def get_node_birth_payload(self):
+    def get_node_birth_payload(self) -> Payload:
         """Get an NBIRTH payload.
 
         Always request this after requesting the Node Death Payload
@@ -96,7 +100,7 @@ class SparkplugNode:
             seq=self.get_seq_num(),
         )
 
-    def get_seq_num(self):
+    def get_seq_num(self) -> int:
         """Get the next sequence number."""
         ret_val = self.seq_num
         self.seq_num += 1
@@ -104,7 +108,7 @@ class SparkplugNode:
             self.seq_num = 0
         return ret_val
 
-    def get_bd_seq_num(self):
+    def get_bd_seq_num(self) -> int:
         """Get the next birth/death sequence number."""
         ret_val = self.bd_seq
         self.bd_seq += 1
@@ -112,13 +116,13 @@ class SparkplugNode:
             self.bd_seq = 0
         return ret_val
 
-    def handle_ncmd(self, client: MQTTClient, payload: Payload):
+    def handle_ncmd(self, client: MQTTClient, payload: Payload) -> None:
         ...
 
-    def publish_birth(self, client: MQTTClient):
+    def publish_birth(self, client: MQTTClient) -> None:
         raise NotImplementedError
 
-    def publish_node_birth(self, client: MQTTClient):
+    def publish_node_birth(self, client: MQTTClient) -> None:
         raise NotImplementedError
 
 
