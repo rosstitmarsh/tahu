@@ -21,10 +21,7 @@ import paho.mqtt.client as mqtt
 from core.sparkplug_b import (
     SparkplugDevice,
     SparkplugNode,
-    add_metric,
-    add_null_metric,
-    init_dataset_metric,
-    init_template_metric,
+    create_metric,
 )
 from core.sparkplug_b_pb2 import DataType, Payload
 
@@ -53,50 +50,57 @@ class ExampleDevice(SparkplugDevice):
         # Get the payload
         payload = self.get_device_birth_payload(seq)
 
-        # Add some device metrics
-        add_metric(
-            payload,
-            "input/Device Metric0",
-            AliasMap.Device_Metric0,
-            DataType.String,
-            "hello device",
+        payload.metrics.extend(
+            [
+                # Add some device metrics
+                create_metric(
+                    "input/Device Metric0",
+                    AliasMap.Device_Metric0,
+                    DataType.String,
+                    "hello device",
+                ),
+                create_metric(
+                    "input/Device Metric1",
+                    AliasMap.Device_Metric1,
+                    DataType.Boolean,
+                    True,
+                ),
+                create_metric(
+                    "output/Device Metric2",
+                    AliasMap.Device_Metric2,
+                    DataType.Int16,
+                    16,
+                ),
+                create_metric(
+                    "output/Device Metric3",
+                    AliasMap.Device_Metric3,
+                    DataType.Boolean,
+                    True,
+                ),
+                # Create the UDT definition value which includes two UDT members and a single parameter and add it to the payload
+                create_metric(
+                    "My_Custom_Motor",
+                    AliasMap.My_Custom_Motor,
+                    DataType.Template,
+                    Payload.Template(
+                        template_ref="Custom_Motor",
+                        parameters=[
+                            Payload.Template.Parameter(
+                                name="Index", type=DataType.String, string_value="1"
+                            )
+                        ],
+                        metrics=[
+                            create_metric(
+                                "RPMs", None, DataType.Int32, 123
+                            ),  # No alias in UDT members
+                            create_metric(
+                                "AMPs", None, DataType.Int32, 456
+                            ),  # No alias in UDT members
+                        ],
+                    ),
+                ),
+            ]
         )
-        add_metric(
-            payload,
-            "input/Device Metric1",
-            AliasMap.Device_Metric1,
-            DataType.Boolean,
-            True,
-        )
-        add_metric(
-            payload,
-            "output/Device Metric2",
-            AliasMap.Device_Metric2,
-            DataType.Int16,
-            16,
-        )
-        add_metric(
-            payload,
-            "output/Device Metric3",
-            AliasMap.Device_Metric3,
-            DataType.Boolean,
-            True,
-        )
-
-        # Create the UDT definition value which includes two UDT members and a single parameter and add it to the payload
-        template = init_template_metric(
-            payload, "My_Custom_Motor", AliasMap.My_Custom_Motor, "Custom_Motor"
-        )
-        template_parameter = template.parameters.add()
-        template_parameter.name = "Index"
-        template_parameter.type = DataType.String
-        template_parameter.string_value = "1"
-        add_metric(
-            template, "RPMs", None, DataType.Int32, 123
-        )  # No alias in UDT members
-        add_metric(
-            template, "AMPs", None, DataType.Int32, 456
-        )  # No alias in UDT members
 
         # Publish the initial data with the Device BIRTH certificate
         total_byte_array = bytearray(payload.SerializeToString())
@@ -106,8 +110,7 @@ class ExampleDevice(SparkplugDevice):
         payload = self.get_ddata_payload(seq)
 
         # Add some random data to the inputs
-        add_metric(
-            payload,
+        create_metric(
             None,
             AliasMap.Device_Metric0,
             DataType.String,
@@ -115,8 +118,7 @@ class ExampleDevice(SparkplugDevice):
         )
 
         # Note this data we're setting to STALE via the propertyset as an example
-        metric = add_metric(
-            payload,
+        metric = create_metric(
             None,
             AliasMap.Device_Metric1,
             DataType.Boolean,
@@ -153,12 +155,10 @@ class ExampleDevice(SparkplugDevice):
 
                 # Create the DDATA payload - Use the alias because this isn't the DBIRTH
                 payload = self.get_ddata_payload()
-                add_metric(
-                    payload,
-                    None,
-                    AliasMap.Device_Metric2,
-                    DataType.Int16,
-                    new_value,
+                payload.metrics.append(
+                    create_metric(
+                        None, AliasMap.Device_Metric2, DataType.Int16, new_value
+                    )
                 )
 
                 # Publish a message data
@@ -179,12 +179,10 @@ class ExampleDevice(SparkplugDevice):
 
                 # Create the DDATA payload - use the alias because this isn't the DBIRTH
                 payload = self.get_ddata_payload()
-                add_metric(
-                    payload,
-                    None,
-                    AliasMap.Device_Metric3,
-                    DataType.Boolean,
-                    new_value,
+                payload.metrics.append(
+                    create_metric(
+                        None, AliasMap.Device_Metric3, DataType.Boolean, new_value
+                    )
                 )
 
                 # Publish a message data
@@ -292,82 +290,101 @@ class ExampleNode(SparkplugNode):
         # Create the node birth payload
         payload = self.get_node_birth_payload()
 
-        # Set up the Node Controls
-        add_metric(
-            payload,
-            "Node Control/Next Server",
-            AliasMap.Next_Server,
-            DataType.Boolean,
-            False,
+        payload.metrics.extend(
+            [
+                # Set up the Node Controls
+                create_metric(
+                    "Node Control/Next Server",
+                    AliasMap.Next_Server,
+                    DataType.Boolean,
+                    False,
+                ),
+                create_metric(
+                    "Node Control/Rebirth",
+                    AliasMap.Rebirth,
+                    DataType.Boolean,
+                    False,
+                ),
+                create_metric(
+                    "Node Control/Reboot",
+                    AliasMap.Reboot,
+                    DataType.Boolean,
+                    False,
+                ),
+                # Add some regular node metrics
+                create_metric(
+                    "Node Metric0",
+                    AliasMap.Node_Metric0,
+                    DataType.String,
+                    "hello node",
+                ),
+                create_metric(
+                    "Node Metric1", AliasMap.Node_Metric1, DataType.Boolean, True
+                ),
+                create_metric(
+                    "Node Metric3", AliasMap.Node_Metric3, DataType.Int32, None
+                ),
+                # Create a DataSet (012 - 345) two rows with Int8, Int16, and Int32 contents and headers Int8s, Int16s, Int32s and add it to the payload
+                create_metric(
+                    "DataSet",
+                    AliasMap.Dataset,
+                    DataType.DataSet,
+                    Payload.DataSet(
+                        columns=["Int8s", "Int16s", "Int32s"],
+                        types=[
+                            DataType.Int8,
+                            DataType.Int16,
+                            DataType.Int32,
+                        ],
+                        rows=[
+                            Payload.DataSet.Row(
+                                elements=[
+                                    Payload.DataSet.DataSetValue(int_value=value)
+                                    for value in row
+                                ]
+                            )
+                            for row in [[0, 1, 2], [3, 4, 5]]
+                        ],
+                    ),
+                ),
+                # Add a metric with a custom property
+                create_metric(
+                    "Node Metric2",
+                    AliasMap.Node_Metric2,
+                    DataType.Int16,
+                    13,
+                    properties=Payload.PropertySet(
+                        keys=["engUnit"],
+                        values=[
+                            Payload.PropertyValue(
+                                type=DataType.String, string_value="MyCustomUnits"
+                            )
+                        ],
+                    ),
+                ),
+                # Create the UDT definition value which includes two UDT members and a single parameter and add it to the payload
+                create_metric(
+                    "_types_/Custom_Motor",
+                    None,  # No alias for Template definitions
+                    DataType.Template,
+                    Payload.Template(
+                        parameters=[
+                            Payload.Template.Parameter(
+                                name="Index", type=DataType.String, string_value="0"
+                            )
+                        ],
+                        metrics=[
+                            create_metric(
+                                "RPMs", None, DataType.Int32, 0
+                            ),  # No alias in UDT members
+                            create_metric(
+                                "AMPs", None, DataType.Int32, 0
+                            ),  # No alias in UDT members
+                        ],
+                    ),
+                ),
+            ]
         )
-        add_metric(
-            payload,
-            "Node Control/Rebirth",
-            AliasMap.Rebirth,
-            DataType.Boolean,
-            False,
-        )
-        add_metric(
-            payload,
-            "Node Control/Reboot",
-            AliasMap.Reboot,
-            DataType.Boolean,
-            False,
-        )
-
-        # Add some regular node metrics
-        add_metric(
-            payload,
-            "Node Metric0",
-            AliasMap.Node_Metric0,
-            DataType.String,
-            "hello node",
-        )
-        add_metric(
-            payload, "Node Metric1", AliasMap.Node_Metric1, DataType.Boolean, True
-        )
-        add_null_metric(payload, "Node Metric3", AliasMap.Node_Metric3, DataType.Int32)
-
-        # Create a DataSet (012 - 345) two rows with Int8, Int16, and Int32 contents and headers Int8s, Int16s, Int32s and add it to the payload
-        columns = ["Int8s", "Int16s", "Int32s"]
-        types = [DataType.Int8, DataType.Int16, DataType.Int32]
-        dataset = init_dataset_metric(
-            payload, "DataSet", AliasMap.Dataset, columns, types
-        )
-        row = dataset.rows.add()
-        element = row.elements.add()
-        element.int_value = 0
-        element = row.elements.add()
-        element.int_value = 1
-        element = row.elements.add()
-        element.int_value = 2
-        row = dataset.rows.add()
-        element = row.elements.add()
-        element.int_value = 3
-        element = row.elements.add()
-        element.int_value = 4
-        element = row.elements.add()
-        element.int_value = 5
-
-        # Add a metric with a custom property
-        metric = add_metric(
-            payload, "Node Metric2", AliasMap.Node_Metric2, DataType.Int16, 13
-        )
-        metric.properties.keys.extend(["engUnit"])
-        property_value = metric.properties.values.add()
-        property_value.type = DataType.String
-        property_value.string_value = "MyCustomUnits"
-
-        # Create the UDT definition value which includes two UDT members and a single parameter and add it to the payload
-        template = init_template_metric(
-            payload, "_types_/Custom_Motor", None, None
-        )  # No alias for Template definitions
-        template_parameter = template.parameters.add()
-        template_parameter.name = "Index"
-        template_parameter.type = DataType.String
-        template_parameter.string_value = "0"
-        add_metric(template, "RPMs", None, DataType.Int32, 0)  # No alias in UDT members
-        add_metric(template, "AMPs", None, DataType.Int32, 0)  # No alias in UDT members
 
         # Publish the node birth certificate
         byte_array = bytearray(payload.SerializeToString())
